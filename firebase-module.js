@@ -1,6 +1,7 @@
-// Integrasi Firebase
+// Integrasi Firebase Database & Auth
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, get, child, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyABsU8Z9wzzzAPHk-5eB6HV2tcsRYGsC2w",
@@ -11,8 +12,76 @@ const firebaseConfig = {
     messagingSenderId: "766106710249",
     appId: "1:766106710249:web:569025628323eeb3460078"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app); // Inisialisasi Auth
+
+// ================= SISTEM LOGIN & LOGOUT =================
+// Cek otomatis apakah user sedang login atau belum
+onAuthStateChanged(auth, (user) => {
+    const loginScreen = document.getElementById("loginScreen");
+    const toolbar = document.querySelector(".toolbar");
+    const mainApp = document.querySelector(".main");
+
+    if (user) {
+        // Jika sudah login: Sembunyikan kotak login, tampilkan aplikasi
+        if(loginScreen) loginScreen.style.display = "none";
+        if(toolbar) toolbar.style.display = "flex";
+        if(mainApp) mainApp.style.display = "flex";
+    } else {
+        // Jika belum login: Tampilkan kotak login, sembunyikan aplikasi
+        if(loginScreen) loginScreen.style.display = "flex";
+        if(toolbar) toolbar.style.display = "none";
+        if(mainApp) mainApp.style.display = "none";
+    }
+});
+
+// Fungsi tombol Login dipencet
+window.prosesLogin = function() {
+    const email = document.getElementById("emailInput").value;
+    const pass = document.getElementById("passwordInput").value;
+    const btnLogin = document.querySelector(".login-box button");
+    const errorText = document.getElementById("loginError");
+
+    if(!email || !pass) {
+        errorText.innerText = "Email dan Password harus diisi!";
+        errorText.style.display = "block";
+        return;
+    }
+
+    btnLogin.innerText = "Mengecek...";
+    
+    signInWithEmailAndPassword(auth, email, pass)
+        .then((userCredential) => {
+            // Berhasil login
+            errorText.style.display = "none";
+            btnLogin.innerText = "Login";
+            document.getElementById("emailInput").value = "";
+            document.getElementById("passwordInput").value = "";
+        })
+        .catch((error) => {
+            // Gagal login
+            errorText.innerText = "Login gagal! Cek kembali email & password.";
+            errorText.style.display = "block";
+            btnLogin.innerText = "Login";
+        });
+};
+
+// Fungsi tombol Logout dipencet
+window.prosesLogout = function() {
+    if(confirm("Apakah Anda yakin ingin keluar dari sistem?")) {
+        signOut(auth).then(() => {
+            alert("Berhasil Logout!");
+            home(); // Reset tampilan ke home
+        }).catch((error) => {
+            console.error("Gagal logout:", error);
+        });
+    }
+};
+
+
+// ================= FUNGSI-FUNGSI DATABASE MOM =================
 
 function parseGroups(rawData) {
     let groups = [];
@@ -64,7 +133,6 @@ window.loadHariIni = async function() {
     let tbody = document.querySelector("#momTable tbody");
     tbody.innerHTML = "<tr><td colspan='13' style='color:blue; padding:20px;'>Sinkronisasi data dari cloud...</td></tr>";
     try {
-        // Asumsi variabel tahun, month, week, day berasal dari global scope di app.js
         const currentSnap = await get(child(ref(db), `MOM/${tahun}/${month}/${week}/${day}`));
         tbody.innerHTML = "";
         
@@ -150,9 +218,7 @@ window.loadSummaryGlobal = async function() {
     document.getElementById("statContainer").style.display = "flex";
     triggerFade("momContainer");
     document.getElementById("actionButtons").style.display = "none"; 
-    
     document.getElementById("colDelete").style.display = "table-cell"; 
-    
     document.getElementById("backToDayBtn").onclick = home; 
     document.getElementById("judul").innerText = "Global Summary (Semua Tahun)";
 
@@ -301,7 +367,6 @@ window.save = async function() {
     } catch (error) { alert("Gagal menyimpan data MOM."); console.error(error); }
 };
 
-// ================= GALLERY KEGIATAN & KOMENTAR FUNCTIONS =================
 window.loadKegiatan = function() {
     isSummaryMode = false; resetDisplay();
     document.getElementById("kegiatanContainer").style.display = "block";
@@ -406,4 +471,3 @@ window.hapusFoto = async function(kategori, key) {
         } catch(err) { alert("Gagal menghapus foto dari server."); console.error(err); }
     }
 }
-
