@@ -212,6 +212,7 @@ window.tarikDataKemarin = async function() {
     }
 };
 
+// ================= GLOBAL SUMMARY UPDATE =================
 window.loadSummaryGlobal = async function() {
     isSummaryMode = true; resetDisplay();
     document.getElementById("momContainer").style.display = "block";
@@ -230,7 +231,9 @@ window.loadSummaryGlobal = async function() {
         if (snapshot.exists()) {
             tbody.innerHTML = "";
             const allData = snapshot.val();
-            let uniqueGroups = new Map(); 
+            
+            // Menggunakan Array untuk menyimpan SEMUA data histori
+            let allGlobalGroups = []; 
             
             for (let thn = 2025; thn <= 2035; thn++) {
                 let tKey = thn.toString();
@@ -250,7 +253,7 @@ window.loadSummaryGlobal = async function() {
                                                     d.infoAsal = infoAsal;
                                                     d.pathTahun = tKey; d.pathBulan = bln; d.pathMinggu = mgg; d.pathHari = hr;
                                                 });
-                                                uniqueGroups.set(g.key, g);
+                                                allGlobalGroups.push(g); // Simpan semuanya
                                             });
                                         }
                                     });
@@ -264,7 +267,7 @@ window.loadSummaryGlobal = async function() {
             let cOpen = 0, cProcess = 0, cClose = 0;
             let hasData = false;
 
-            for (let g of uniqueGroups.values()) {
+            allGlobalGroups.forEach(g => {
                 g.items.forEach(d => {
                     if (!d[2] || d[2].toString().trim().length < 2) return; 
                     hasData = true;
@@ -299,7 +302,7 @@ window.loadSummaryGlobal = async function() {
                         </td>
                     `;
                 });
-            }
+            });
             document.getElementById("countOpen").innerText = cOpen; document.getElementById("countProcess").innerText = cProcess; document.getElementById("countClose").innerText = cClose;
             updateNomor(); 
             if (!hasData) tbody.innerHTML = "<tr><td colspan='13' style='padding:20px;'>Data Tidak Ditemukan.</td></tr>";
