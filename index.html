@@ -1,194 +1,108 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
-    <title>MOM Tracking System - Global Summary & Kegiatan</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <link rel="stylesheet" href="style.css">
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-</head>
-
+    <title>MoM Solar Energy - Reporting Tool</title>
+    <link rel="stylesheet" href="style.css"> </head>
 <body>
 
-    <div id="loginScreen">
+    <div id="loginScreen" class="login-container">
         <div class="login-box">
-            <h2>Login MOM EPN</h2>
-            <input type="email" id="emailInput" placeholder="Masukkan Email">
-            <input type="password" id="passwordInput" placeholder="Masukkan Password">
+            <h2>Masuk ke Sistem</h2>
+            <input type="email" id="emailInput" placeholder="Email">
+            <input type="password" id="passwordInput" placeholder="Password">
             <button onclick="prosesLogin()">Login</button>
-            <p id="loginError">Email atau Password salah!</p>
+            <p id="loginError" style="color:red; display:none; margin-top:10px;"></p>
         </div>
     </div>
 
-    <div class="toolbar" style="display: none;"> <button onclick="home()" style="background: #e74c3c; text-align: center; margin-bottom: 20px;">🏠 Home</button>
-        <div class="sidebar-section">
-            <label class="sidebar-label">Pilih Tahun</label>
-            <select id="selectTahun" onchange="gantiTahun()">
-                <option value="2025">2025</option>
-                <option value="2026" selected>2026</option>
-                <option value="2027">2027</option>
-                <option value="2028">2028</option>
-                <option value="2029">2029</option>
-                <option value="2030">2030</option>
-                <option value="2031">2031</option>
-                <option value="2032">2032</option>
-                <option value="2033">2033</option>
-                <option value="2034">2034</option>
-                <option value="2035">2035</option>
-            </select>
-        </div>
-        <button class="btn-toggle-month" onclick="toggleMonthList()">📅 Pilih Bulan</button>
-        <div id="monthListContainer" class="fade-in">
-            <button onclick="pilihBulan('Januari',this)">Januari</button>
-            <button onclick="pilihBulan('Februari',this)">Februari</button>
-            <button onclick="pilihBulan('Maret',this)">Maret</button>
-            <button onclick="pilihBulan('April',this)">April</button>
-            <button onclick="pilihBulan('Mei',this)">Mei</button>
-            <button onclick="pilihBulan('Juni',this)">Juni</button>
-            <button onclick="pilihBulan('Juli',this)">Juli</button>
-            <button onclick="pilihBulan('Agustus',this)">Agustus</button>
-            <button onclick="pilihBulan('September',this)">September</button>
-            <button onclick="pilihBulan('Oktober',this)">Oktober</button>
-            <button onclick="pilihBulan('November',this)">November</button>
-            <button onclick="pilihBulan('Desember',this)">Desember</button>
-        </div>
-        <button class="btn-summary" onclick="loadSummaryGlobal()">📊 Global Summary</button>
-        <button class="btn-kegiatan" onclick="loadKegiatan()">📸 Kegiatan</button>
+    <div class="toolbar" style="display:none;">
+        <button id="backToDayBtn" onclick="home()">🏠 Home</button>
+        <h2 id="judul">Daily Report MoM</h2>
+        <button onclick="prosesLogout()" style="background:#e74c3c;">Logout</button>
+    </div>
+
+    <div class="main" style="display:none;">
         
-        <button style="background: #c0392b; margin-top: 30px; text-align: center;" onclick="prosesLogout()">🚪 Logout</button>
-    </div>
-
-    <div class="main" style="display: none;"> <div class="top-header">
-            <img id="leftLogo" src="fotoom.png" alt="Logo Kiri" onerror="this.style.display='none'">
-            <div class="header-title">MOM TRACKING SYSTEM - EPN</div>
-            <img id="mainLogo" src="fotoepn.png" alt="Logo Kanan" onerror="this.style.display='none'">
+        <div id="statContainer" class="stat-container" style="display:none;">
+            <div class="stat-box" style="background:#2ecc71;">Open: <span id="countOpen">0</span></div>
+            <div class="stat-box" style="background:#f1c40f; color:black;">Process: <span id="countProcess">0</span></div>
+            <div class="stat-box" style="background:#34495e;">Close: <span id="countClose">0</span></div>
         </div>
 
-        <div id="homeText">
-            <div class="main-title">Daily Reports Minutes Of Meetings O&M</div>
-            <div class="sub-title">Energia Prima Nusantara</div>
+        <div id="filterGlobalContainer" style="display:none; justify-content:center; gap:10px; margin: 15px 0;">
+            <button onclick="loadSummaryGlobal('terbaru')" class="btn-filter" id="btnTerbaru">Update Terbaru</button>
+            <button onclick="loadSummaryGlobal('semua')" class="btn-filter" id="btnSemua">Semua Histori</button>
         </div>
 
-        <div id="weekMenu" class="fade-in">
-            <h2 style="color:#2c3e50; margin-top:0;">Pilih Minggu</h2>
-            <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
-            <button class="weekBtn" onclick="pilihMinggu('Minggu 1')">Minggu 1</button>
-            <button class="weekBtn" onclick="pilihMinggu('Minggu 2')">Minggu 2</button>
-            <button class="weekBtn" onclick="pilihMinggu('Minggu 3')">Minggu 3</button>
-            <button class="weekBtn" onclick="pilihMinggu('Minggu 4')">Minggu 4</button>
-        </div>
-
-        <div id="dayMenu" class="fade-in">
-            <button class="weekBtn" style="background:#f8d7da; color:#721c24; border-color:#f5c6cb;" onclick="kembaliMinggu()">⬅ Kembali ke Minggu</button>
-            <h2 style="color:#2c3e50;">Pilih Hari</h2>
-            <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
-            <button class="dayBtn" onclick="pilihHari('Senin')">Senin</button>
-            <button class="dayBtn" onclick="pilihHari('Selasa')">Selasa</button>
-            <button class="dayBtn" onclick="pilihHari('Rabu')">Rabu</button>
-            <button class="dayBtn" onclick="pilihHari('Kamis')">Kamis</button>
-            <button class="dayBtn" onclick="pilihHari('Jumat')">Jumat</button>
-        </div>
-
-        <div class="container fade-in" id="momContainer">
-            <button class="weekBtn" id="backToDayBtn" style="margin-bottom:15px;" onclick="kembaliHari()">⬅ Kembali</button>
-            
-            <div class="header-controls">
-                <h2 id="judul"></h2>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button class="add-btn" style="background:#27ae60; margin: 0; padding: 10px 15px;" onclick="exportKeExcel()">📥 Download Excel</button>
-                    <input type="text" id="searchInput" class="search-bar" onkeyup="cariData()" placeholder="🔍 Cari data...">
-                </div>
-            </div>
-            
-            <div id="statContainer" class="summary-stats" style="display:none;">
-                <div class="stat-box" style="background:#e74c3c" onclick="filterGlobal('open')">Open: <span id="countOpen">0</span></div>
-                <div class="stat-box" style="background:#f1c40f; color:black;" onclick="filterGlobal('process')">Process: <span id="countProcess">0</span></div>
-                <div class="stat-box" style="background:#2ecc71" onclick="filterGlobal('close')">Close: <span id="countClose">0</span></div>
-                <div class="stat-box" style="background:#7f8c8d" onclick="filterGlobal('all')">Show All</div>
-            </div>
-            
-            <div class="table-responsive">
+        <div id="momContainer">
+            <div class="table-wrapper">
                 <table id="momTable">
                     <thead>
                         <tr>
-                            <th class="col-no">No</th>
-                            <th class="col-hari">Hari/Minggu</th>
-                            <th class="col-matters">Matters of Discussion</th>
-                            <th class="col-problem">Problem</th>
-                            <th class="col-tanggal">Tanggal</th>
-                            <th class="col-pic">PIC</th>
-                            <th class="col-epc">EPC</th>
-                            <th class="col-due">Due Date</th>
-                            <th class="col-done">Selesai</th>
-                            <th class="col-aging">Aging</th>
-                            <th class="col-status">Status</th>
-                            <th class="col-remarks">Remarks</th>
-                            <th id="colDelete" style="width:75px">Aksi</th>
+                            <th>No</th>
+                            <th class="col-hari">Waktu</th>
+                            <th>Matters of Discussion</th>
+                            <th>Problem / Description</th>
+                            <th class="col-tanggal">Info Asal</th>
+                            <th>PIC</th>
+                            <th>EPC</th>
+                            <th>Due Date</th>
+                            <th>Done Date</th>
+                            <th>Aging</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                            <th id="colDelete">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody>
+                        </tbody>
                 </table>
             </div>
 
-            <div id="actionButtons" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-                <button class="add-btn" style="background:#4e73df;" onclick="tambah()">+ Tambah Data Baru</button>
-                <button class="add-btn" style="background:#f39c12;" onclick="tarikDataKemarin()" title="Salin pekerjaan yang masih Open dari 1 hari yang lalu">📥 Tarik Data Kemarin</button>
-                <button class="add-btn" style="background:#e74c3c;" onclick="hapusSemuaDataTabel()" title="Kosongkan semua baris di tabel ini">🗑 Hapus Semua</button>
-                <button class="add-btn" style="background:#1cc88a; margin-left:auto;" onclick="save()">💾 Simpan ke Cloud (<span id="btnYear">2026</span>)</button>
+            <div id="actionButtons" class="action-bar">
+                <button onclick="tambah()" class="add-btn">+ Baris Baru</button>
+                <button onclick="tambah(true)" class="sub-btn">+ Sub Baris</button>
+                <button onclick="tarikDataKemarin()" class="pull-btn">🔄 Tarik Task Open</button>
+                <button onclick="save()" class="save-btn">💾 Simpan ke Cloud</button>
+                <button onclick="loadSummaryGlobal('terbaru')" class="summary-btn">📊 Global Summary</button>
+                <button onclick="loadKegiatan()" class="gallery-btn">📸 Galeri Kegiatan</button>
             </div>
         </div>
 
-        <div class="container fade-in" id="kegiatanContainer" style="border-top-color:#e67e22; text-align: center;">
-            <button class="weekBtn" onclick="home()" style="margin-bottom:15px; float: left;">⬅ Kembali</button>
-            <h2 id="judulKegiatan" style="color:#2c3e50; border-bottom:2px solid #eee; padding-bottom:10px; clear: both;">Dokumentasi Kegiatan</h2>
+        <div id="kegiatanContainer" style="display:none;">
+            <div id="filterKegiatanContainer" class="stat-container">
+                <div class="stat-box" onclick="fetchFoto('Semua')">Semua</div>
+                <div class="stat-box" onclick="fetchFoto('Lapangan')">Lapangan</div>
+                <div class="stat-box" onclick="fetchFoto('Meeting')">Meeting</div>
+                <div class="stat-box" onclick="fetchFoto('Bebas')">Bebas</div>
+            </div>
             
-            <button class="add-btn" id="btnToggleUpload" onclick="toggleUploadForm()" style="margin-bottom: 20px; font-size: 15px;">+ Tambah Foto Baru</button>
-
-            <div class="upload-section" id="formUploadFoto">
-                <h3 style="margin-top:0; color:#4e73df;">Form Upload Dokumentasi</h3>
-                
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-                    <select id="kategoriFoto" style="padding:10px; border-radius:4px; border:1px solid #ccc; font-weight:bold; color:#2c3e50; cursor:pointer; outline:none;">
-                        <option value="Lapangan">🚜 Kegiatan Lapangan</option>
-                        <option value="Meeting">🤝 Meeting / Rapat</option>
-                        <option value="Bebas">📸 Bebas / Lainnya</option>
-                    </select>
-                    <input type="file" id="fotoInput" accept="image/*" style="border:1px solid #ccc; padding:10px; border-radius:4px; background:white;">
-                </div>
-                
-                <textarea id="fotoKomentar" placeholder="Tulis komentar atau keterangan foto di sini..." style="width: 100%; max-width: 500px; padding: 10px; border-radius: 4px; border: 1px solid #ccc; resize: vertical; min-height: 60px; font-family: inherit;"></textarea>
-                
-                <div style="display: flex; gap: 10px; margin-top: 5px;">
-                    <button class="add-btn" style="margin:0; background:#e67e22;" onclick="uploadFoto()">⬆ Upload & Simpan</button>
-                    <button class="add-btn" style="margin:0; background:#7f8c8d;" onclick="toggleUploadForm()">Batal</button>
-                </div>
+            <button id="btnToggleUpload" onclick="toggleUploadForm()" class="add-btn">Upload Foto Baru</button>
+            
+            <div id="formUploadFoto" class="upload-box" style="display:none;">
+                <input type="file" id="fotoInput" accept="image/*">
+                <select id="kategoriFoto">
+                    <option value="Lapangan">Lapangan</option>
+                    <option value="Meeting">Meeting</option>
+                    <option value="Bebas">Bebas</option>
+                </select>
+                <textarea id="fotoKomentar" placeholder="Tulis keterangan foto..."></textarea>
+                <button onclick="uploadFoto()" class="add-btn">Kirim Foto</button>
             </div>
 
-            <div class="summary-stats" style="margin-top:10px; margin-bottom:20px; border-bottom:1px dashed #cbd5e1; padding-bottom:15px;" id="filterKegiatanContainer">
-                <div class="stat-box" style="background:#34495e;" onclick="fetchFoto('Semua')">Semua Foto</div>
-                <div class="stat-box" style="background:#27ae60;" onclick="fetchFoto('Lapangan')">🚜 Lapangan</div>
-                <div class="stat-box" style="background:#2980b9;" onclick="fetchFoto('Meeting')">🤝 Meeting</div>
-                <div class="stat-box" style="background:#8e44ad;" onclick="fetchFoto('Bebas')">📸 Bebas</div>
-            </div>
-
-            <div class="gallery" id="galleryContainer"></div>
+            <div id="galleryContainer" class="gallery-grid"></div>
         </div>
     </div>
 
-    <div id="undoToast"></div>
-
-    <div id="lightbox" onclick="tutupLightbox()">
-        <span class="close-lightbox" onclick="tutupLightbox()">&times;</span>
-        <img id="lightboxImg">
-        <div id="lightboxCaption"></div>
+    <div id="lightbox" class="lightbox" onclick="tutupLightbox()">
+        <span class="close-lightbox">&times;</span>
+        <img class="lightbox-content" id="imgLightbox">
+        <div id="captionLightbox"></div>
     </div>
 
-    <script src="app.js"></script>
-    
+    <script src="script.js"></script>
     <script type="module" src="firebase-module.js"></script>
-
 </body>
 </html>
