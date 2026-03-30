@@ -1,273 +1,119 @@
-/* ================= GLOBAL STYLES ================= */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
+/* ================= GENERAL & ANIMATIONS ================= */
+body, html { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100%; }
+body { display: flex; background-color: #f4f6f9; }
 
-body {
-    background-color: #f4f7f6;
-    color: #333;
-    line-height: 1.6;
-}
+.fade-in { animation: fadeIn 0.5s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ================= LOGIN SCREEN ================= */
-.login-container {
-    display: flex;
+/* ================= SIDEBAR & HOME ================= */
+.toolbar { width: 220px; background: #2c3e50; display: flex; flex-direction: column; padding: 20px 15px; height: 100vh; overflow-y: auto; box-sizing: border-box; z-index: 100; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+.toolbar button { margin: 5px 0; padding: 12px 10px; border: none; border-radius: 6px; cursor: pointer; background: rgba(255,255,255,0.1); color: white; font-weight: bold; width: 100%; transition: 0.3s; text-align: left; }
+.toolbar button:hover { background: #1cc88a; color: white; }
+.active-month { background: #1cc88a !important; color: white; }
+
+.sidebar-section { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #455a64; }
+.sidebar-label { color: #bdc3c7; font-size: 11px; font-weight: bold; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 1px; }
+#selectTahun { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #455a64; background: #1a252f; color: white; font-weight: bold; cursor: pointer; outline: none; }
+#monthListContainer { display: none; padding-left: 10px; } 
+#monthListContainer button { padding: 8px 10px; font-size: 13px; background: transparent; border-left: 2px solid transparent; border-radius: 0; }
+#monthListContainer button:hover { border-left: 2px solid #1cc88a; background: rgba(255,255,255,0.05); }
+
+.btn-toggle-month { background: #f39c12 !important; color: white !important; text-align: center !important; }
+.btn-summary { background: #9b59b6 !important; color: white !important; margin-top: 15px !important; text-align: center !important; }
+.btn-kegiatan { background: #e67e22 !important; color: white !important; margin-top: 5px !important; text-align: center !important; }
+
+/* ================= MAIN & HEADER BAR ================= */
+.main { flex: 1; background: radial-gradient(circle at center, #ffffff 0%, #e2e8f0 100%); position: relative; display: flex; flex-direction: column; align-items: center; overflow: auto; padding-top: 80px; }
+
+.top-header { position: fixed; top: 0; left: 220px; right: 0; height: 60px; background: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 50; }
+.header-title { font-size: 16px; font-weight: 800; color: #2c3e50; letter-spacing: 1.5px; text-align: center; flex: 1; }
+.top-header img { height: 65px; width: auto; object-fit: contain; }
+
+/* ================= HOME TEXT ================= */
+@keyframes fadeBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+@keyframes fadeInHome { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+#homeText { text-align: center; margin-top: 150px; opacity: 0; animation: fadeInHome 1.5s forwards; }
+#homeText .main-title { font-size: 2.2em; color: #1e293b; font-weight: 900; line-height: 1.3; letter-spacing: 0.5px; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05); animation: fadeBlink 3s infinite; }
+#homeText .sub-title { display: block; font-size: 1.2em; color: #64748b; font-weight: 500; margin-top: 15px; letter-spacing: 0.5px; }
+#homeText::after { content: ''; display: block; margin: 20px auto 0; width: 120px; height: 4px; background: #4e73df; border-radius: 2px; animation: pulseLine 1.5s infinite; }
+
+/* ================= TABLE & CONTAINER ================= */
+.container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08); width: 95%; max-width: 1500px; margin-top: 20px; display: none; overflow-x: auto; border-top: 4px solid #4e73df; }
+
+.header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; flex-wrap: wrap; gap: 15px; }
+#judul { margin: 0; color: #333; font-size: 20px; font-weight: bold; }
+
+/* ================= GLOBAL SUMMARY FILTERS (TAMBAHAN BARU) ================= */
+#filterGlobalContainer {
+    display: none; /* Muncul lewat JS */
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    background: linear-gradient(135deg, #2c3e50, #3498db);
-    padding: 20px;
-}
-
-.login-box {
-    background: white;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    gap: 15px;
+    margin-bottom: 20px;
     width: 100%;
-    max-width: 400px;
-    text-align: center;
-}
-
-.login-box h2 { margin-bottom: 20px; color: #2c3e50; }
-
-.login-box input {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
-}
-
-.login-box button {
-    width: 100%;
-    padding: 12px;
-    background: #27ae60;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 16px;
-    margin-top: 10px;
-}
-
-/* ================= TOOLBAR & NAV ================= */
-.toolbar {
-    background: #2c3e50;
-    color: white;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.toolbar h2 { font-size: 18px; }
-
-.toolbar button {
-    background: rgba(255,255,255,0.2);
-    border: none;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 5px;
-    font-size: 14px;
-}
-
-/* ================= STATS & FILTER (NEW) ================= */
-.stat-container {
-    display: flex;
-    gap: 10px;
-    padding: 15px;
-    background: white;
-    border-bottom: 1px solid #ddd;
-    overflow-x: auto;
-}
-
-.stat-box {
-    flex: 1;
-    min-width: 100px;
-    padding: 10px;
-    border-radius: 8px;
-    text-align: center;
-    color: white;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-/* Tombol Filter di Global Summary */
-#filterGlobalContainer {
-    padding: 10px 15px;
-    background: #fff;
-    display: flex;
-    gap: 10px;
 }
 
 .btn-filter {
-    flex: 1;
-    padding: 12px;
+    padding: 12px 25px;
     border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    color: white;
-    text-transform: uppercase;
-    font-size: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-#btnTerbaru { background: #2ecc71; } /* Hijau */
-#btnSemua { background: #3498db; }   /* Biru */
-
-/* ================= TABLE SYSTEM ================= */
-.main { padding: 10px; padding-bottom: 100px; }
-
-.table-wrapper {
-    background: white;
-    border-radius: 10px;
-    overflow-x: auto; /* Penting untuk HP */
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 1200px; /* Supaya tabel bisa di-scroll horizontal */
-}
-
-th {
-    background: #ecf0f1;
-    padding: 12px;
-    text-align: center;
-    font-size: 13px;
-    border: 1px solid #ddd;
-}
-
-td {
-    padding: 0; /* Padding diatur di dalam input/textarea */
-    border: 1px solid #eee;
-    vertical-align: top;
-}
-
-/* Input & Textarea dalam Tabel */
-td input, td textarea, td select {
-    width: 100%;
-    border: none;
-    padding: 10px;
-    font-size: 14px;
-    background: transparent;
-    resize: none; /* Khusus textarea */
-}
-
-td textarea:focus, td input:focus {
-    background: #fff9c4; /* Highlight kuning saat diketik */
-    outline: none;
-}
-
-.sub-row { background-color: #f9f9f9; }
-
-/* Status Colors */
-.status-open { background-color: #2ecc71 !important; color: white; }
-.status-process { background-color: #f1c40f !important; color: black; }
-.status-close { background-color: #34495e !important; color: white; }
-
-/* ================= ACTION BAR (BOTTOM) ================= */
-.action-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: white;
-    padding: 10px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
-    justify-content: center;
-}
-
-.action-bar button {
-    flex: 1;
-    min-width: 110px;
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     color: white;
     font-weight: bold;
-    font-size: 12px;
     cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    text-transform: uppercase;
+    font-size: 13px;
+    min-width: 160px;
 }
 
-.add-btn { background: #27ae60; }
-.sub-btn { background: #16a085; }
-.pull-btn { background: #f39c12; }
-.save-btn { background: #2980b9; }
-.summary-btn { background: #8e44ad; }
-.gallery-btn { background: #34495e; }
+#btnTerbaru { background: #1cc88a; } /* Hijau Sidebar */
+#btnSemua { background: #4e73df; }   /* Biru Header */
+
+.btn-filter:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.btn-filter:active { transform: translateY(0); }
+
+/* ================= TABLE DESIGN ================= */
+.table-responsive { width: 100%; max-height: 65vh; overflow: auto; border: 2px solid #64748b; border-radius: 4px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05); }
+table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: auto; min-width: 100%; }
+th, td { border-bottom: 2px solid #94a3b8; border-right: 2px solid #94a3b8; padding: 6px; text-align: center; vertical-align: middle; white-space: nowrap; }
+
+#momTable th { position: sticky; top: 0; z-index: 10; font-size: 0.8em; font-weight: 700; padding: 10px 6px; background: #e2e8f0 !important; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 3px solid #64748b; }
+
+.col-no { position: sticky; left: 0; z-index: 5; min-width: 45px; background-color: #e9ecef !important; border-right: 2px solid #64748b; }
+
+/* WARNA KOLOM KHAS KAMU */
+#momTable td.col-matters { background-color: #f3e8ff; min-width: 250px; max-width: 500px; white-space: normal; } 
+#momTable td.col-problem { background-color: #fffbeb; min-width: 250px; max-width: 500px; white-space: normal; } 
+#momTable td.col-remarks { background-color: #eff6ff; min-width: 200px; max-width: 400px; white-space: normal; } 
+
+/* ================= STATUS COLORS ================= */
+.status-open { background: #e74c3c !important; color: white; font-weight: bold; }
+.status-process { background: #f1c40f !important; color: black; font-weight: bold; }
+.status-close { background: #2ecc71 !important; color: white; font-weight: bold; }
+
+.status-open select, .status-process select, .status-close select { background: transparent !important; color: inherit !important; font-weight: bold; border: none !important; width: 100%; text-align: center; }
+
+/* ================= ACTION BUTTONS ================= */
+.add-btn { background: #4e73df; color: white; padding: 10px 20px; margin: 10px 5px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+.add-btn:hover { filter: brightness(0.9); }
+
+.summary-stats { display: flex; gap: 15px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+.stat-box { padding: 10px 20px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
 
 /* ================= GALLERY & LIGHTBOX ================= */
-.gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
-    padding: 15px;
-}
+.photo-card { width: 380px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; background: white; transition: 0.3s; margin: 10px; }
+.photo-img-wrapper img { width: 100%; cursor: zoom-in; }
 
-.photo-card {
-    background: white;
-    padding: 10px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.photo-card img {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-    border-radius: 5px;
-}
-
-.photo-card p {
-    font-size: 12px;
-    margin-top: 8px;
-    text-align: center;
-}
-
-.upload-box {
-    background: white;
-    margin: 15px;
-    padding: 15px;
-    border-radius: 10px;
-    border: 2px dashed #ddd;
-}
-
-.upload-box input, .upload-box textarea, .upload-box select {
-    width: 100%;
-    margin-bottom: 10px;
-}
-
-/* Lightbox */
-.lightbox {
-    display: none;
-    position: fixed;
-    z-index: 9999;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.9);
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-}
-
-.lightbox-content { max-width: 90%; max-height: 80%; border-radius: 10px; }
+#lightbox { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.9); text-align: center; backdrop-filter: blur(5px); }
+#lightboxImg { margin: auto; display: block; max-width: 90%; max-height: 80vh; border-radius: 8px; margin-top: 50px; }
 
 /* ================= RESPONSIVE ================= */
-@media (max-width: 600px) {
-    .toolbar h2 { font-size: 15px; }
-    .action-bar button { font-size: 10px; min-width: 90px; }
-    .col-hari, .col-tanggal { font-size: 10px !important; }
+@media (max-width: 768px) {
+    .toolbar { width: 100%; height: auto; position: relative; }
+    .top-header { left: 0; padding: 0 10px; }
+    .main { padding-top: 120px; }
+    #filterGlobalContainer { flex-direction: column; gap: 8px; }
+    .btn-filter { width: 90%; }
 }
