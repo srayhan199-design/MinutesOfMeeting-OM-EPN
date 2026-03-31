@@ -139,8 +139,6 @@ function resetDisplay() {
     document.getElementById("momContainer").style.display = "none";
     document.getElementById("statContainer").style.display = "none";
     document.getElementById("kegiatanContainer").style.display = "none";
-    // Tambahan agar container filter summary ikut reset
-    if(document.getElementById("filterGlobalContainer")) document.getElementById("filterGlobalContainer").style.display = "none";
     document.getElementById("searchInput").value = "";
     currentStatusFilter = "all";
 }
@@ -153,12 +151,7 @@ function home() {
 }
 
 function cariData() { applyFilters(); }
-
-// Fungsi untuk tombol filter Global Summary (Terbaru / Semua)
-window.filterGlobal = function(status) {
-    currentStatusFilter = 'all'; // Reset search filter internal
-    loadGlobalSummary(status === 'all'); // 'all' di sini berarti mode "Terbaru"
-}
+function filterGlobal(status) { currentStatusFilter = status; applyFilters(); }
 
 function applyFilters() {
     let keyword = document.getElementById("searchInput").value.toLowerCase();
@@ -292,79 +285,78 @@ function pilihHari(h) {
     document.getElementById("colDelete").style.display="table-cell"; 
     document.getElementById("backToDayBtn").onclick = kembaliHari; 
     document.getElementById("judul").innerText = `MOM ${tahun} - ${month} - ${week} - ${day}`; 
+    
+    // Ini akan memanggil fungsi dari file firebase-module.js
     if (typeof window.loadHariIni === 'function') window.loadHariIni(); 
 }
 
 function kembaliHari() { document.getElementById("momContainer").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
 function kembaliMinggu() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; triggerFade("weekMenu"); }
 
-// ================= FITUR GLOBAL SUMMARY (DIPERBAIKI ANTI-DOBEL) ==================
-window.loadGlobalSummary = async function(isLatestOnly = true) {
+// ================= FITUR BARU: GLOBAL SUMMARY (SARINGAN TERBARU) ==================
+// Pastikan fungsi 'getDocs' dan 'collection' sudah di-import dari Firebase di file lain
+window.loadGlobalSummary = async function() {
     isSummaryMode = true;
     resetDisplay();
     document.getElementById("momContainer").style.display = "block";
-    document.getElementById("actionButtons").style.display = "none";
-    
-    // Munculkan tombol saringan (Terbaru/Semua)
-    if(document.getElementById("filterGlobalContainer")) document.getElementById("filterGlobalContainer").style.display = "flex";
-    
-    document.getElementById("judul").innerText = isLatestOnly ? `GLOBAL SUMMARY (LATEST UPDATE)` : `GLOBAL SUMMARY (ALL HISTORY)`;
+    document.getElementById("actionButtons").style.display = "none"; // Sembunyikan tombol simpan saat summary
+    document.getElementById("judul").innerText = `GLOBAL SUMMARY - ALL TIME (Latest Update)`;
     
     let tbody = document.querySelector("#momTable tbody");
-    tbody.innerHTML = ""; 
+    tbody.innerHTML = ""; // Kosongkan tabel
 
     try {
+        // Asumsi variabel 'db' sudah ada (dideklarasikan di file firebase kamu)
         const querySnapshot = await getDocs(collection(db, "mom"));
+
         let saringanData = {};
 
         querySnapshot.forEach((doc) => {
             let data = doc.data();
+            
+            // Kunci saringannya adalah kolom matters
             if (!data.matters) return;
+            let kunci = data.matters.toLowerCase().trim();
 
-            // KUNCI ANTI-DOBEL: Pakai Regex biar spasi/enter nggak bikin data dianggap beda
-            let kunci = data.matters.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-            if (!isLatestOnly) {
-                // Jika mode SEMUA HISTORI, tampilkan saja semuanya
-                renderRow(data);
+            if (!saringanData[kunci]) {
+                saringanData[kunci] = data;
             } else {
-                // Jika mode UPDATE TERBARU, lakukan penyaringan
-                if (!saringanData[kunci]) {
+                // Bandingkan mana yang lebih baru berdasarkan field 'timestamp'
+                // Pastikan kamu punya field 'timestamp' saat simpan data ke Firebase!
+                let waktuDataLama = saringanData[kunci].timestamp ? new Date(saringanData[kunci].timestamp) : 0;
+                let waktuDataBaru = data.timestamp ? new Date(data.timestamp) : 0;
+
+                if (waktuDataBaru >= waktuDataLama) {
                     saringanData[kunci] = data;
-                } else {
-                    let waktuLama = saringanData[kunci].timestamp ? new Date(saringanData[kunci].timestamp) : 0;
-                    let waktuBaru = data.timestamp ? new Date(data.timestamp) : 0;
-                    if (waktuBaru >= waktuLama) {
-                        saringanData[kunci] = data;
-                    }
                 }
             }
         });
 
-        if (isLatestOnly) {
-            Object.values(saringanData).forEach(d => renderRow(d));
-        }
+        // Cetak data yang sudah disaring ke layar
+        let dataTerbaru = Object.values(saringanData);
+        
+        dataTerbaru.forEach(d => {
+            let row = tambah(); // Bikin baris kosong
+            
+            // Isi barisnya (sesuaikan dengan nama field di database Firebase kamu)
+            row.querySelector(".col-hari input").value = d.hari || "-";
+            row.querySelector(".col-matters textarea").value = d.matters || "";
+            row.querySelector(".col-problem textarea").value = d.problem || "";
+            row.querySelector(".col-tanggal input").value = d.tanggal || "";
+            row.querySelector(".col-pic input").value = d.pic || "";
+            row.querySelector(".col-epc input").value = d.epc || "";
+            row.querySelector(".col-due input").value = d.due || "";
+            row.querySelector(".col-done input").value = d.done || "";
+            row.querySelector(".col-status select").value = d.status || "";
+            row.querySelector(".col-remarks textarea").value = d.remarks || "";
+            
+            setStatus(row.querySelector(".col-status select")); // Update warna
+        });
 
         updateNomor();
 
     } catch (error) {
-        console.error("Error: ", error);
-        alert("Gagal memuat Global Summary.");
+        console.error("Error mengambil data Global Summary: ", error);
+        alert("Gagal memuat Global Summary. Pastikan koneksi database berjalan baik.");
     }
-}
-
-// Fungsi pembantu cetak baris summary agar tidak ngetik ulang
-function renderRow(d) {
-    let row = tambah(); 
-    row.querySelector(".col-hari input").value = d.hari || "-";
-    row.querySelector(".col-matters textarea").value = d.matters || "";
-    row.querySelector(".col-problem textarea").value = d.problem || "";
-    row.querySelector(".col-tanggal input").value = d.tanggal || "";
-    row.querySelector(".col-pic input").value = d.pic || "";
-    row.querySelector(".col-epc input").value = d.epc || "";
-    row.querySelector(".col-due input").value = d.due || "";
-    row.querySelector(".col-done input").value = d.done || "";
-    row.querySelector(".col-status select").value = d.status || "";
-    row.querySelector(".col-remarks textarea").value = d.remarks || "";
-    setStatus(row.querySelector(".col-status select")); 
 }
