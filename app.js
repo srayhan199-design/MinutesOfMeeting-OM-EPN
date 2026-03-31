@@ -12,7 +12,7 @@ const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Ju
 // ================= FITUR EXPORT KE EXCEL ==================
 window.exportKeExcel = function() {
     if (typeof XLSX === 'undefined') {
-        alert("Library Excel belum berhasil dimuat. Pastikan koneksi internet lancar dan coba lagi.");
+        alert("Library Excel belum dimuat. Pastikan koneksi internet lancar.");
         return;
     }
     let wb = XLSX.utils.book_new();
@@ -28,109 +28,30 @@ window.exportKeExcel = function() {
 
     document.querySelectorAll("#momTable tbody tr").forEach(tr => {
         if (tr.style.display === "none") return; 
-        if (tr.cells.length <= 1) return;
-
         let rowData = [];
-        let cells = tr.querySelectorAll("td");
-        
-        for(let i = 0; i < cells.length; i++) {
-            if(cells[i].classList.contains("col-del") || cells[i].style.display === "none") continue;
-            
-            let val = "";
-            let input = cells[i].querySelector("input, textarea, select");
-            if (input) { val = input.value; } else { val = cells[i].innerText; }
-            rowData.push(val);
-        }
+        tr.querySelectorAll("td").forEach(td => {
+            if(td.classList.contains("col-del") || td.style.display === "none") return;
+            let input = td.querySelector("input, textarea, select");
+            rowData.push(input ? input.value : td.innerText);
+        });
         if (rowData.length > 0) ws_data.push(rowData);
     });
 
     let ws = XLSX.utils.aoa_to_sheet(ws_data);
     XLSX.utils.book_append_sheet(wb, ws, "Data_MOM");
-    let namaFile = isSummaryMode ? "MOM_Global_Summary.xlsx" : `MOM_Harian_${tahun}_${month}_${week}_${day}.xlsx`;
-    XLSX.writeFile(wb, namaFile);
+    XLSX.writeFile(wb, isSummaryMode ? "MOM_Global_Summary.xlsx" : `MOM_Harian_${day}.xlsx`);
 }
 
-// ================= VARIABEL UNDO HAPUS =================
-let rowYangDihapus = null;
-let posisiRow = null;
-let timerUndo = null;
-
-function hapusBaris(btn) {
-    if (confirm("Apakah Anda yakin akan menghapus baris ini?")) {
-        let row = btn.closest('tr');
-        let tbody = row.parentNode;
-        rowYangDihapus = row;
-        posisiRow = row.nextSibling;
-        tbody.removeChild(row);
-        updateNomor(); 
-
-        let toast = document.getElementById("undoToast");
-        toast.innerHTML = `Baris berhasil dihapus. <button class="undo-btn" onclick="batalHapus()">Batalkan</button>`;
-        toast.classList.add("show");
-
-        clearTimeout(timerUndo);
-        timerUndo = setTimeout(() => { toast.classList.remove("show"); rowYangDihapus = null; }, 7000);
-    }
-}
-
-function batalHapus() {
-    if (rowYangDihapus) {
-        let tbody = document.querySelector("#momTable tbody");
-        tbody.insertBefore(rowYangDihapus, posisiRow);
-        updateNomor(); 
-        let toast = document.getElementById("undoToast");
-        if (toast) toast.classList.remove("show");
-        rowYangDihapus = null;
-        clearTimeout(timerUndo);
-    }
-}
-
-window.hapusSemuaDataTabel = function() {
-    if (confirm("🚨 PERINGATAN! Apakah Anda yakin ingin mengosongkan SEMUA baris di tabel ini?\n\n(Data di Cloud tidak akan terhapus secara permanen sampai Anda menekan tombol 'Simpan ke Cloud' setelah ini.)")) {
-        let tbody = document.querySelector("#momTable tbody");
-        tbody.innerHTML = ""; 
-        tambah(); 
-        updateNomor();
-        
-        let toast = document.getElementById("undoToast");
-        if (toast) toast.classList.remove("show");
-        rowYangDihapus = null;
-        
-        alert("Semua baris telah dikosongkan. Jangan lupa klik 'Simpan ke Cloud' jika Anda ingin menghapus data ini dari database.");
-    }
-}
-
-function bukaLightbox(src, komentar) {
-    document.getElementById('lightbox').style.display = 'block';
-    document.getElementById('lightboxImg').src = src;
-    document.getElementById('lightboxCaption').innerHTML = komentar || '';
-}
-function tutupLightbox() { document.getElementById('lightbox').style.display = 'none'; }
-
-function toggleUploadForm() {
-    let form = document.getElementById("formUploadFoto");
-    let btnToggle = document.getElementById("btnToggleUpload");
-    if (form.style.display === "none" || form.style.display === "") {
-        form.style.display = "flex"; btnToggle.style.display = "none"; 
-    } else {
-        form.style.display = "none"; btnToggle.style.display = "inline-block"; 
-        document.getElementById("fotoInput").value = ""; document.getElementById("fotoKomentar").value = "";
-    }
-}
-
-function toggleMonthList() {
-    let container = document.getElementById("monthListContainer");
-    container.style.display = (container.style.display === "block") ? "none" : "block";
-}
-function gantiTahun() {
-    tahun = document.getElementById("selectTahun").value;
-    document.getElementById("btnYear").innerText = tahun; home(); 
-}
+// ================= FUNGSI DASAR UI =================
 function triggerFade(id) {
     let el = document.getElementById(id);
     if(!el) return; el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
 }
-function autoHeight(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
+
+function autoHeight(el) { 
+    el.style.height = "auto"; 
+    el.style.height = (el.scrollHeight) + "px"; 
+}
 
 function resetDisplay() {
     document.getElementById("homeText").style.display = "none";
@@ -138,6 +59,7 @@ function resetDisplay() {
     document.getElementById("dayMenu").style.display = "none";
     document.getElementById("momContainer").style.display = "none";
     document.getElementById("statContainer").style.display = "none";
+    document.getElementById("filterGlobalContainer").style.display = "none"; // Sembunyi filter
     document.getElementById("kegiatanContainer").style.display = "none";
     document.getElementById("searchInput").value = "";
     currentStatusFilter = "all";
@@ -150,68 +72,28 @@ function home() {
     triggerFade("homeText");
 }
 
-function cariData() { applyFilters(); }
-function filterGlobal(status) { currentStatusFilter = status; applyFilters(); }
-
-function applyFilters() {
-    let keyword = document.getElementById("searchInput").value.toLowerCase();
-    let trs = document.querySelectorAll("#momTable tbody tr");
-
-    trs.forEach(r => {
-        let sVal = "";
-        let selectEl = r.querySelector("select");
-        if (selectEl) { sVal = selectEl.value; } 
-        else {
-            let statusTd = r.querySelector(".col-status");
-            if(statusTd) {
-                if(statusTd.classList.contains("status-open")) sVal = "open";
-                else if(statusTd.classList.contains("status-process")) sVal = "process";
-                else if(statusTd.classList.contains("status-close")) sVal = "close";
-            }
-        }
-        let matchStatus = (currentStatusFilter === 'all' || sVal === currentStatusFilter);
-        let textContent = "";
-        r.querySelectorAll("input, textarea, select").forEach(el => textContent += el.value.toLowerCase() + " ");
-        r.querySelectorAll("div, span").forEach(el => textContent += el.innerText.toLowerCase() + " ");
-        let matchSearch = textContent.includes(keyword);
-
-        if (matchStatus && matchSearch) { r.style.display = "table-row"; } else { r.style.display = "none"; }
-    });
-    updateNomor();
-}
-
+// ================= LOGIKA TABEL & BARIS =================
 function updateNomor() {
     let idx = 1;
     let trs = Array.from(document.querySelectorAll("#momTable tbody tr"));
-    trs.forEach(r => { let colNo = r.querySelector(".col-no"); if (colNo) { colNo.style.display = "table-cell"; colNo.rowSpan = 1; } });
     let visibleTrs = trs.filter(r => r.style.display !== "none");
     
-    for (let i = 0; i < visibleTrs.length; i++) {
-        let r = visibleTrs[i];
+    visibleTrs.forEach((r, i) => {
         let colNo = r.querySelector(".col-no");
-        if (!colNo) continue;
-
+        if (!colNo) return;
+        
         if (r.classList.contains("sub-row")) {
-            let prevMainIndex = i - 1;
-            while(prevMainIndex >= 0 && visibleTrs[prevMainIndex].classList.contains("sub-row")) { prevMainIndex--; }
-            
-            if (prevMainIndex >= 0) {
-                colNo.style.display = "none";
-                let parentColNo = visibleTrs[prevMainIndex].querySelector(".col-no");
-                parentColNo.rowSpan = parentColNo.rowSpan + 1;
-                let noInput = colNo.querySelector(".no");
-                if(noInput) noInput.value = "-"; else { let div = colNo.querySelector("div"); if(div) div.innerText = "-"; }
-            } else {
-                colNo.style.display = "table-cell"; colNo.rowSpan = 1;
-                let noInput = colNo.querySelector(".no");
-                if(noInput) noInput.value = "-"; else { let div = colNo.querySelector("div"); if(div) div.innerText = "-"; }
-            }
+            colNo.innerHTML = `<div style="color:#bdc3c7;">-</div>`;
         } else {
-            colNo.style.display = "table-cell"; colNo.rowSpan = 1;
-            let noInput = colNo.querySelector(".no");
-            if(noInput) { noInput.value = idx++; } else { let div = colNo.querySelector("div"); if(div) div.innerText = idx++; }
+            colNo.innerHTML = `<div class="no">${idx++}</div>`;
         }
-    }
+    });
+}
+
+function setStatus(s) {
+    if(!s) return; 
+    s.parentElement.className = "col-status status-" + s.value; 
+    aging(s);
 }
 
 function aging(el) {
@@ -225,22 +107,17 @@ function aging(el) {
     if (!tglVal && !dueVal) { agingSpan.innerText = ""; return; }
     let pembandingDate = selesaiVal ? new Date(selesaiVal) : new Date();
     pembandingDate.setHours(0,0,0,0);
-    agingSpan.style.color = "#495057"; 
 
     if (dueVal) {
         let dueDate = new Date(dueVal); dueDate.setHours(0,0,0,0);
         let diffDays = Math.floor((dueDate - pembandingDate) / (1000 * 60 * 60 * 24));
         agingSpan.innerText = diffDays;
-        if (diffDays < 0 && statusVal !== "close") { agingSpan.style.color = "red"; }
+        agingSpan.style.color = (diffDays < 0 && statusVal !== "close") ? "red" : "#495057";
     } else if (tglVal) {
         let startDate = new Date(tglVal); startDate.setHours(0,0,0,0);
         let diffDays = Math.floor((pembandingDate - startDate) / (1000 * 60 * 60 * 24));
         agingSpan.innerText = diffDays;
     }
-}
-
-function setStatus(s) {
-    if(!s) return; s.parentElement.className = "col-status status-" + s.value; aging(s);
 }
 
 function tambah(isSubRow = false, referenceRow = null) {
@@ -249,8 +126,8 @@ function tambah(isSubRow = false, referenceRow = null) {
     if (isSubRow) row.classList.add("sub-row");
 
     row.innerHTML = `
-        <td class="col-no"><input class="no" readonly style="background:transparent; border:none; text-align:center; font-weight:bold; font-size:16px; width:100%;"></td>
-        <td class="col-hari"><input class="cell-hari" value="${day}" readonly style="background:transparent; border:none; text-align:center;"></td>
+        <td class="col-no"></td>
+        <td class="col-hari"><input class="cell-hari" value="${day}" readonly></td>
         <td class="col-matters"><textarea oninput="autoHeight(this)"></textarea></td>
         <td class="col-problem"><textarea oninput="autoHeight(this)"></textarea></td>
         <td class="col-tanggal"><input type="date" onchange="aging(this)"></td>
@@ -258,12 +135,12 @@ function tambah(isSubRow = false, referenceRow = null) {
         <td class="col-epc"><input></td>
         <td class="col-due"><input type="date" onchange="aging(this)"></td>
         <td class="col-done"><input type="date" onchange="aging(this)"></td>
-        <td class="col-aging"><span style="font-weight:bold; color:#495057;"></span></td>
+        <td class="col-aging"><span style="font-weight:bold;"></span></td>
         <td class="col-status"><select onchange="setStatus(this)"><option></option><option value="open">Open</option><option value="process">Process</option><option value="close">Close</option></select></td>
         <td class="col-remarks"><textarea oninput="autoHeight(this)"></textarea></td>
-        <td class="col-del" style="white-space:nowrap;">
-            <button onclick="tambahSub(this)" style="color:#2ecc71; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px; margin-right:5px;" title="Tambah Sub-Task di bawah ini">➕</button>
-            <button onclick="hapusBaris(this)" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px;" title="Hapus baris ini">✖</button>
+        <td class="col-del">
+            <button onclick="tambahSub(this)" style="color:#2ecc71;">➕</button>
+            <button onclick="hapusBaris(this)" style="color:red;">✖</button>
         </td>
     `;
     if (referenceRow) { tbody.insertBefore(row, referenceRow.nextSibling); } 
@@ -272,91 +149,103 @@ function tambah(isSubRow = false, referenceRow = null) {
     return row;
 }
 
-function tambahSub(btn) { let parentTr = btn.closest('tr'); tambah(true, parentTr); }
-function pilihBulan(b, e) { isSummaryMode = false; month = b; resetDisplay(); document.getElementById("weekMenu").style.display = "block"; triggerFade("weekMenu"); document.querySelectorAll(".toolbar button").forEach(btn => btn.classList.remove("active-month")); e.classList.add("active-month"); }
-function pilihMinggu(w) { week = w; document.getElementById("weekMenu").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
+function tambahSub(btn) { tambah(true, btn.closest('tr')); }
+
+// ================= NAVIGASI MENU =================
+function pilihBulan(b, e) { 
+    isSummaryMode = false; month = b; resetDisplay(); 
+    document.getElementById("weekMenu").style.display = "block"; 
+    triggerFade("weekMenu"); 
+    document.querySelectorAll(".toolbar button").forEach(btn => btn.classList.remove("active-month")); 
+    e.classList.add("active-month"); 
+}
+
+function pilihMinggu(w) { 
+    week = w; 
+    document.getElementById("weekMenu").style.display="none"; 
+    document.getElementById("dayMenu").style.display="block"; 
+    triggerFade("dayMenu"); 
+}
 
 function pilihHari(h) { 
     day = h; isSummaryMode = false; 
-    document.getElementById("dayMenu").style.display="none"; 
+    resetDisplay();
     document.getElementById("momContainer").style.display="block"; 
-    triggerFade("momContainer"); 
     document.getElementById("actionButtons").style.display="flex"; 
-    document.getElementById("colDelete").style.display="table-cell"; 
-    document.getElementById("backToDayBtn").onclick = kembaliHari; 
     document.getElementById("judul").innerText = `MOM ${tahun} - ${month} - ${week} - ${day}`; 
-    
-    // Ini akan memanggil fungsi dari file firebase-module.js
     if (typeof window.loadHariIni === 'function') window.loadHariIni(); 
 }
 
-function kembaliHari() { document.getElementById("momContainer").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
-function kembaliMinggu() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; triggerFade("weekMenu"); }
+// ================= LOGIKA FILTER GLOBAL (ANT-DOBEL) =================
+function filterGlobal(status) {
+    currentStatusFilter = status;
+    // Update UI tombol aktif
+    document.getElementById("btnTerbaru").style.opacity = (status === 'all') ? "1" : "0.5";
+    document.getElementById("btnSemua").style.opacity = (status === 'all') ? "0.5" : "1";
+    
+    // Panggil ulang load dengan filter
+    loadGlobalSummary(status === 'all'); 
+}
 
-// ================= FITUR BARU: GLOBAL SUMMARY (SARINGAN TERBARU) ==================
-// Pastikan fungsi 'getDocs' dan 'collection' sudah di-import dari Firebase di file lain
-window.loadGlobalSummary = async function() {
+window.loadGlobalSummary = async function(isLatestOnly = true) {
     isSummaryMode = true;
     resetDisplay();
     document.getElementById("momContainer").style.display = "block";
-    document.getElementById("actionButtons").style.display = "none"; // Sembunyikan tombol simpan saat summary
-    document.getElementById("judul").innerText = `GLOBAL SUMMARY - ALL TIME (Latest Update)`;
+    document.getElementById("filterGlobalContainer").style.display = "flex"; // Munculkan tombol filter
+    document.getElementById("actionButtons").style.display = "none";
+    document.getElementById("judul").innerText = isLatestOnly ? "GLOBAL SUMMARY (UPDATE TERBARU)" : "GLOBAL SUMMARY (SEMUA HISTORI)";
     
     let tbody = document.querySelector("#momTable tbody");
-    tbody.innerHTML = ""; // Kosongkan tabel
+    tbody.innerHTML = "<tr><td colspan='13'>Memuat data...</td></tr>";
 
     try {
-        // Asumsi variabel 'db' sudah ada (dideklarasikan di file firebase kamu)
-        const querySnapshot = await getDocs(collection(db, "mom"));
+        // Ambil data dari Firebase (Asumsi fungsi loadSemuaData dari firebase-module.js)
+        const allData = await window.loadSemuaData(); 
+        tbody.innerHTML = "";
 
-        let saringanData = {};
+        if (isLatestOnly) {
+            // LOGIKA ANTI-DOBEL
+            let saringanMap = new Map();
 
-        querySnapshot.forEach((doc) => {
-            let data = doc.data();
-            
-            // Kunci saringannya adalah kolom matters
-            if (!data.matters) return;
-            let kunci = data.matters.toLowerCase().trim();
+            allData.forEach(d => {
+                // Buat kunci unik: Matters + Problem (dihapus spasi & simbolnya)
+                let cleanMatters = (d[2] || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+                let cleanProblem = (d[3] || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+                let key = cleanMatters + "_" + cleanProblem;
 
-            if (!saringanData[kunci]) {
-                saringanData[kunci] = data;
-            } else {
-                // Bandingkan mana yang lebih baru berdasarkan field 'timestamp'
-                // Pastikan kamu punya field 'timestamp' saat simpan data ke Firebase!
-                let waktuDataLama = saringanData[kunci].timestamp ? new Date(saringanData[kunci].timestamp) : 0;
-                let waktuDataBaru = data.timestamp ? new Date(data.timestamp) : 0;
-
-                if (waktuDataBaru >= waktuDataLama) {
-                    saringanData[kunci] = data;
+                if (!saringanMap.has(key)) {
+                    saringanMap.set(key, d);
+                } else {
+                    // Cek mana yang lebih baru (Asumsi d[4] adalah tanggal/timestamp)
+                    let lama = new Date(saringanMap.get(key)[4] || 0);
+                    let baru = new Date(d[4] || 0);
+                    if (baru >= lama) saringanMap.set(key, d);
                 }
-            }
-        });
+            });
 
-        // Cetak data yang sudah disaring ke layar
-        let dataTerbaru = Object.values(saringanData);
-        
-        dataTerbaru.forEach(d => {
-            let row = tambah(); // Bikin baris kosong
-            
-            // Isi barisnya (sesuaikan dengan nama field di database Firebase kamu)
-            row.querySelector(".col-hari input").value = d.hari || "-";
-            row.querySelector(".col-matters textarea").value = d.matters || "";
-            row.querySelector(".col-problem textarea").value = d.problem || "";
-            row.querySelector(".col-tanggal input").value = d.tanggal || "";
-            row.querySelector(".col-pic input").value = d.pic || "";
-            row.querySelector(".col-epc input").value = d.epc || "";
-            row.querySelector(".col-due input").value = d.due || "";
-            row.querySelector(".col-done input").value = d.done || "";
-            row.querySelector(".col-status select").value = d.status || "";
-            row.querySelector(".col-remarks textarea").value = d.remarks || "";
-            
-            setStatus(row.querySelector(".col-status select")); // Update warna
-        });
+            saringanMap.forEach(data => renderRow(data));
+        } else {
+            // Munculkan SEMUA tanpa saringan
+            allData.forEach(data => renderRow(data));
+        }
 
         updateNomor();
-
-    } catch (error) {
-        console.error("Error mengambil data Global Summary: ", error);
-        alert("Gagal memuat Global Summary. Pastikan koneksi database berjalan baik.");
+    } catch (e) {
+        tbody.innerHTML = "<tr><td colspan='13'>Gagal memuat data.</td></tr>";
     }
+}
+
+function renderRow(d) {
+    let row = tambah();
+    row.querySelector(".col-hari input").value = d[1] || "";
+    row.querySelector(".col-matters textarea").value = d[2] || "";
+    row.querySelector(".col-problem textarea").value = d[3] || "";
+    row.querySelector(".col-tanggal input").value = d[4] || "";
+    row.querySelector(".col-pic input").value = d[5] || "";
+    row.querySelector(".col-epc input").value = d[6] || "";
+    row.querySelector(".col-due input").value = d[7] || "";
+    row.querySelector(".col-done input").value = d[8] || "";
+    row.querySelector(".col-status select").value = d[10] || "";
+    row.querySelector(".col-remarks textarea").value = d[11] || "";
+    setStatus(row.querySelector(".col-status select"));
 }
