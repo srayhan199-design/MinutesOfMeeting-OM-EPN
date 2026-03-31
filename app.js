@@ -1,4 +1,4 @@
-// Variabel Global
+// ================= VARIABEL GLOBAL =================
 let tahun = "2026";
 let month = "";
 let week = "";
@@ -292,3 +292,71 @@ function pilihHari(h) {
 
 function kembaliHari() { document.getElementById("momContainer").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
 function kembaliMinggu() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; triggerFade("weekMenu"); }
+
+// ================= FITUR BARU: GLOBAL SUMMARY (SARINGAN TERBARU) ==================
+// Pastikan fungsi 'getDocs' dan 'collection' sudah di-import dari Firebase di file lain
+window.loadGlobalSummary = async function() {
+    isSummaryMode = true;
+    resetDisplay();
+    document.getElementById("momContainer").style.display = "block";
+    document.getElementById("actionButtons").style.display = "none"; // Sembunyikan tombol simpan saat summary
+    document.getElementById("judul").innerText = `GLOBAL SUMMARY - ALL TIME (Latest Update)`;
+    
+    let tbody = document.querySelector("#momTable tbody");
+    tbody.innerHTML = ""; // Kosongkan tabel
+
+    try {
+        // Asumsi variabel 'db' sudah ada (dideklarasikan di file firebase kamu)
+        const querySnapshot = await getDocs(collection(db, "mom"));
+
+        let saringanData = {};
+
+        querySnapshot.forEach((doc) => {
+            let data = doc.data();
+            
+            // Kunci saringannya adalah kolom matters
+            if (!data.matters) return;
+            let kunci = data.matters.toLowerCase().trim();
+
+            if (!saringanData[kunci]) {
+                saringanData[kunci] = data;
+            } else {
+                // Bandingkan mana yang lebih baru berdasarkan field 'timestamp'
+                // Pastikan kamu punya field 'timestamp' saat simpan data ke Firebase!
+                let waktuDataLama = saringanData[kunci].timestamp ? new Date(saringanData[kunci].timestamp) : 0;
+                let waktuDataBaru = data.timestamp ? new Date(data.timestamp) : 0;
+
+                if (waktuDataBaru >= waktuDataLama) {
+                    saringanData[kunci] = data;
+                }
+            }
+        });
+
+        // Cetak data yang sudah disaring ke layar
+        let dataTerbaru = Object.values(saringanData);
+        
+        dataTerbaru.forEach(d => {
+            let row = tambah(); // Bikin baris kosong
+            
+            // Isi barisnya (sesuaikan dengan nama field di database Firebase kamu)
+            row.querySelector(".col-hari input").value = d.hari || "-";
+            row.querySelector(".col-matters textarea").value = d.matters || "";
+            row.querySelector(".col-problem textarea").value = d.problem || "";
+            row.querySelector(".col-tanggal input").value = d.tanggal || "";
+            row.querySelector(".col-pic input").value = d.pic || "";
+            row.querySelector(".col-epc input").value = d.epc || "";
+            row.querySelector(".col-due input").value = d.due || "";
+            row.querySelector(".col-done input").value = d.done || "";
+            row.querySelector(".col-status select").value = d.status || "";
+            row.querySelector(".col-remarks textarea").value = d.remarks || "";
+            
+            setStatus(row.querySelector(".col-status select")); // Update warna
+        });
+
+        updateNomor();
+
+    } catch (error) {
+        console.error("Error mengambil data Global Summary: ", error);
+        alert("Gagal memuat Global Summary. Pastikan koneksi database berjalan baik.");
+    }
+}
