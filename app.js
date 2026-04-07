@@ -65,11 +65,13 @@ function hapusBaris(btn) {
         updateNomor(); 
 
         let toast = document.getElementById("undoToast");
-        toast.innerHTML = `Baris berhasil dihapus. <button class="undo-btn" onclick="batalHapus()">Batalkan</button>`;
-        toast.classList.add("show");
+        if(toast) {
+            toast.innerHTML = `Baris berhasil dihapus. <button class="undo-btn" onclick="batalHapus()">Batalkan</button>`;
+            toast.classList.add("show");
+        }
 
         clearTimeout(timerUndo);
-        timerUndo = setTimeout(() => { toast.classList.remove("show"); rowYangDihapus = null; }, 7000);
+        timerUndo = setTimeout(() => { if(toast) toast.classList.remove("show"); rowYangDihapus = null; }, 7000);
     }
 }
 
@@ -86,20 +88,16 @@ function batalHapus() {
 }
 
 window.hapusSemuaDataTabel = function() {
-    if (confirm("🚨 PERINGATAN! Apakah Anda yakin ingin mengosongkan SEMUA baris di tabel ini?\n\n(Data di Cloud tidak akan terhapus secara permanen sampai Anda menekan tombol 'Simpan ke Cloud' setelah ini.)")) {
+    if (confirm("🚨 PERINGATAN! Apakah Anda yakin ingin mengosongkan SEMUA baris di tabel ini?")) {
         let tbody = document.querySelector("#momTable tbody");
         tbody.innerHTML = ""; 
         tambah(); 
         updateNomor();
-        
-        let toast = document.getElementById("undoToast");
-        if (toast) toast.classList.remove("show");
-        rowYangDihapus = null;
-        
-        alert("Semua baris telah dikosongkan. Jangan lupa klik 'Simpan ke Cloud' jika Anda ingin menghapus data ini dari database.");
+        alert("Semua baris telah dikosongkan. Jangan lupa klik 'Simpan ke Cloud' untuk memperbarui database.");
     }
 }
 
+// ================= UI HELPER =================
 function bukaLightbox(src, komentar) {
     document.getElementById('lightbox').style.display = 'block';
     document.getElementById('lightboxImg').src = src;
@@ -114,7 +112,6 @@ function toggleUploadForm() {
         form.style.display = "flex"; btnToggle.style.display = "none"; 
     } else {
         form.style.display = "none"; btnToggle.style.display = "inline-block"; 
-        document.getElementById("fotoInput").value = ""; document.getElementById("fotoKomentar").value = "";
     }
 }
 
@@ -141,6 +138,9 @@ function resetDisplay() {
     document.getElementById("kegiatanContainer").style.display = "none";
     document.getElementById("searchInput").value = "";
     currentStatusFilter = "all";
+    
+    // Tampilkan kembali kolom delete (antisipasi setelah dari mode summary)
+    document.getElementById("colDelete").style.display = "table-cell";
 }
 
 function home() { 
@@ -150,6 +150,7 @@ function home() {
     triggerFade("homeText");
 }
 
+// ================= FILTER & SEARCH =================
 function cariData() { applyFilters(); }
 function filterGlobal(status) { currentStatusFilter = status; applyFilters(); }
 
@@ -180,6 +181,7 @@ function applyFilters() {
     updateNomor();
 }
 
+// ================= CORE TABLE LOGIC =================
 function updateNomor() {
     let idx = 1;
     let trs = Array.from(document.querySelectorAll("#momTable tbody tr"));
@@ -199,12 +201,6 @@ function updateNomor() {
                 colNo.style.display = "none";
                 let parentColNo = visibleTrs[prevMainIndex].querySelector(".col-no");
                 parentColNo.rowSpan = parentColNo.rowSpan + 1;
-                let noInput = colNo.querySelector(".no");
-                if(noInput) noInput.value = "-"; else { let div = colNo.querySelector("div"); if(div) div.innerText = "-"; }
-            } else {
-                colNo.style.display = "table-cell"; colNo.rowSpan = 1;
-                let noInput = colNo.querySelector(".no");
-                if(noInput) noInput.value = "-"; else { let div = colNo.querySelector("div"); if(div) div.innerText = "-"; }
             }
         } else {
             colNo.style.display = "table-cell"; colNo.rowSpan = 1;
@@ -225,17 +221,17 @@ function aging(el) {
     if (!tglVal && !dueVal) { agingSpan.innerText = ""; return; }
     let pembandingDate = selesaiVal ? new Date(selesaiVal) : new Date();
     pembandingDate.setHours(0,0,0,0);
-    agingSpan.style.color = "#495057"; 
 
     if (dueVal) {
         let dueDate = new Date(dueVal); dueDate.setHours(0,0,0,0);
         let diffDays = Math.floor((dueDate - pembandingDate) / (1000 * 60 * 60 * 24));
         agingSpan.innerText = diffDays;
-        if (diffDays < 0 && statusVal !== "close") { agingSpan.style.color = "red"; }
+        agingSpan.style.color = (diffDays < 0 && statusVal !== "close") ? "red" : "#495057";
     } else if (tglVal) {
         let startDate = new Date(tglVal); startDate.setHours(0,0,0,0);
         let diffDays = Math.floor((pembandingDate - startDate) / (1000 * 60 * 60 * 24));
         agingSpan.innerText = diffDays;
+        agingSpan.style.color = "#495057";
     }
 }
 
@@ -262,8 +258,8 @@ function tambah(isSubRow = false, referenceRow = null) {
         <td class="col-status"><select onchange="setStatus(this)"><option></option><option value="open">Open</option><option value="process">Process</option><option value="close">Close</option></select></td>
         <td class="col-remarks"><textarea oninput="autoHeight(this)"></textarea></td>
         <td class="col-del" style="white-space:nowrap;">
-            <button onclick="tambahSub(this)" style="color:#2ecc71; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px; margin-right:5px;" title="Tambah Sub-Task di bawah ini">➕</button>
-            <button onclick="hapusBaris(this)" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px;" title="Hapus baris ini">✖</button>
+            <button onclick="tambahSub(this)" style="color:#2ecc71; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px; margin-right:5px;">➕</button>
+            <button onclick="hapusBaris(this)" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px;">✖</button>
         </td>
     `;
     if (referenceRow) { tbody.insertBefore(row, referenceRow.nextSibling); } 
@@ -273,7 +269,15 @@ function tambah(isSubRow = false, referenceRow = null) {
 }
 
 function tambahSub(btn) { let parentTr = btn.closest('tr'); tambah(true, parentTr); }
-function pilihBulan(b, e) { isSummaryMode = false; month = b; resetDisplay(); document.getElementById("weekMenu").style.display = "block"; triggerFade("weekMenu"); document.querySelectorAll(".toolbar button").forEach(btn => btn.classList.remove("active-month")); e.classList.add("active-month"); }
+
+// ================= NAVIGASI MENU =================
+function pilihBulan(b, e) { 
+    isSummaryMode = false; month = b; resetDisplay(); 
+    document.getElementById("weekMenu").style.display = "block"; 
+    triggerFade("weekMenu"); 
+    document.querySelectorAll(".toolbar button").forEach(btn => btn.classList.remove("active-month")); 
+    e.classList.add("active-month"); 
+}
 function pilihMinggu(w) { week = w; document.getElementById("weekMenu").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
 
 function pilihHari(h) { 
@@ -285,8 +289,6 @@ function pilihHari(h) {
     document.getElementById("colDelete").style.display="table-cell"; 
     document.getElementById("backToDayBtn").onclick = kembaliHari; 
     document.getElementById("judul").innerText = `MOM ${tahun} - ${month} - ${week} - ${day}`; 
-    
-    // Ini akan memanggil fungsi dari file firebase-module.js
     if (typeof window.loadHariIni === 'function') window.loadHariIni(); 
 }
 
@@ -294,51 +296,51 @@ function kembaliHari() { document.getElementById("momContainer").style.display="
 function kembaliMinggu() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; triggerFade("weekMenu"); }
 
 // ================= FITUR BARU: GLOBAL SUMMARY (SARINGAN TERBARU) ==================
-// Pastikan fungsi 'getDocs' dan 'collection' sudah di-import dari Firebase di file lain
 window.loadGlobalSummary = async function() {
     isSummaryMode = true;
     resetDisplay();
     document.getElementById("momContainer").style.display = "block";
-    document.getElementById("actionButtons").style.display = "none"; // Sembunyikan tombol simpan saat summary
+    document.getElementById("actionButtons").style.display = "none"; 
     document.getElementById("judul").innerText = `GLOBAL SUMMARY - ALL TIME (Latest Update)`;
     
+    // Sembunyikan kolom delete di mode summary
+    document.getElementById("colDelete").style.display = "none";
+
     let tbody = document.querySelector("#momTable tbody");
-    tbody.innerHTML = ""; // Kosongkan tabel
+    tbody.innerHTML = ""; 
 
     try {
-        // Asumsi variabel 'db' sudah ada (dideklarasikan di file firebase kamu)
         const querySnapshot = await getDocs(collection(db, "mom"));
-
         let saringanData = {};
 
         querySnapshot.forEach((doc) => {
             let data = doc.data();
-            
-            // Kunci saringannya adalah kolom matters
             if (!data.matters) return;
+            
             let kunci = data.matters.toLowerCase().trim();
+            let waktuDataBaru = data.timestamp ? new Date(data.timestamp).getTime() : 0;
 
             if (!saringanData[kunci]) {
                 saringanData[kunci] = data;
             } else {
-                // Bandingkan mana yang lebih baru berdasarkan field 'timestamp'
-                // Pastikan kamu punya field 'timestamp' saat simpan data ke Firebase!
-                let waktuDataLama = saringanData[kunci].timestamp ? new Date(saringanData[kunci].timestamp) : 0;
-                let waktuDataBaru = data.timestamp ? new Date(data.timestamp) : 0;
-
-                if (waktuDataBaru >= waktuDataLama) {
+                let waktuDataLama = saringanData[kunci].timestamp ? new Date(saringanData[kunci].timestamp).getTime() : 0;
+                if (waktuDataBaru > waktuDataLama) {
                     saringanData[kunci] = data;
                 }
             }
         });
 
-        // Cetak data yang sudah disaring ke layar
         let dataTerbaru = Object.values(saringanData);
         
+        // Urutkan biar yang paling baru ada di atas
+        dataTerbaru.sort((a, b) => {
+            let timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            let timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return timeB - timeA;
+        });
+
         dataTerbaru.forEach(d => {
-            let row = tambah(); // Bikin baris kosong
-            
-            // Isi barisnya (sesuaikan dengan nama field di database Firebase kamu)
+            let row = tambah();
             row.querySelector(".col-hari input").value = d.hari || "-";
             row.querySelector(".col-matters textarea").value = d.matters || "";
             row.querySelector(".col-problem textarea").value = d.problem || "";
@@ -350,13 +352,20 @@ window.loadGlobalSummary = async function() {
             row.querySelector(".col-status select").value = d.status || "";
             row.querySelector(".col-remarks textarea").value = d.remarks || "";
             
-            setStatus(row.querySelector(".col-status select")); // Update warna
+            setStatus(row.querySelector(".col-status select"));
+            
+            // Buat Read-Only agar tidak sengaja terubah di mode Summary
+            row.querySelectorAll("input, textarea, select").forEach(el => {
+                el.disabled = true;
+                el.style.backgroundColor = "transparent";
+            });
+            row.querySelector(".col-del").style.display = "none";
         });
 
         updateNomor();
 
     } catch (error) {
         console.error("Error mengambil data Global Summary: ", error);
-        alert("Gagal memuat Global Summary. Pastikan koneksi database berjalan baik.");
+        alert("Gagal memuat data. Periksa koneksi Database.");
     }
-}
+        }
