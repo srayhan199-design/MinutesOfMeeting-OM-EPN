@@ -1,147 +1,177 @@
-window.loadSummaryGlobal = async function() {
-    isSummaryMode = true; 
-    resetDisplay();
+// ================= VARIABEL GLOBAL =================
+let tahun = "2026";
+let month = "";
+let week = "";
+let day = "";
+let isSummaryMode = false;
+let currentStatusFilter = 'all'; 
 
-    document.getElementById("momContainer").style.display = "block";
-    document.getElementById("statContainer").style.display = "flex";
-    triggerFade("momContainer");
+const urutanHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-    document.getElementById("actionButtons").style.display = "none"; 
-    document.getElementById("colDelete").style.display = "table-cell"; 
-    document.getElementById("backToDayBtn").onclick = home; 
-    document.getElementById("judul").innerText = "Global Summary (No Duplicate - Latest Only)";
+// ================= FITUR EXPORT KE EXCEL ==================
+window.exportKeExcel = function() {
+    if (typeof XLSX === 'undefined') {
+        alert("Library Excel belum berhasil dimuat.");
+        return;
+    }
 
-    let tbody = document.querySelector("#momTable tbody");
-    tbody.innerHTML = "<tr><td colspan='13'>Scanning database...</td></tr>";
+    let wb = XLSX.utils.book_new();
+    let ws_data = [];
 
-    try {
-        const snapshot = await get(ref(db, "MOM"));
-
-        if (!snapshot.exists()) {
-            tbody.innerHTML = "<tr><td colspan='13'>Data tidak ditemukan</td></tr>";
-            return;
+    let headers = [];
+    document.querySelectorAll("#momTable thead th").forEach(th => {
+        if (th.id !== "colDelete" && th.style.display !== "none") {
+            headers.push(th.innerText);
         }
+    });
+    ws_data.push(headers);
 
-        tbody.innerHTML = "";
-        const allData = snapshot.val();
+    document.querySelectorAll("#momTable tbody tr").forEach(tr => {
+        if (tr.style.display === "none") return;
+        if (tr.cells.length <= 1) return;
 
-        let uniqueDataMap = {};
+        let rowData = [];
+        tr.querySelectorAll("td").forEach(td => {
+            if (td.classList.contains("col-del") || td.style.display === "none") return;
 
-        // 🔥 LOOP SEMUA DATA
-        for (let thn = 2025; thn <= 2035; thn++) {
-            let tKey = thn.toString();
-
-            if (allData[tKey]) {
-                urutanBulan.forEach(bln => {
-                    if (allData[tKey][bln]) {
-                        ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4"].forEach(mgg => {
-                            if (allData[tKey][bln][mgg]) {
-                                urutanHari.forEach(hr => {
-                                    if (allData[tKey][bln][mgg][hr]) {
-
-                                        let rawData = allData[tKey][bln][mgg][hr];
-                                        let infoAsal = `${tKey}-${bln}-${mgg}-${hr}`;
-
-                                        let groups = parseGroups(rawData);
-
-                                        groups.forEach(g => {
-                                            g.items.forEach(d => {
-
-                                                let matters = (d[2] || "").toLowerCase().trim();
-                                                let problem = (d[3] || "").toLowerCase().trim();
-
-                                                if (!matters && !problem) return;
-
-                                                // 🔑 KEY UNIK
-                                                let key = matters + "|" + problem;
-
-                                                // ✅ SIMPAN TERBARU (override)
-                                                uniqueDataMap[key] = {
-                                                    data: d,
-                                                    infoAsal,
-                                                    pathTahun: tKey,
-                                                    pathBulan: bln,
-                                                    pathMinggu: mgg,
-                                                    pathHari: hr
-                                                };
-                                            });
-                                        });
-
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-            }
-        }
-
-        let cOpen = 0, cProcess = 0, cClose = 0;
-        let hasData = false;
-
-        // 🔥 RENDER TANPA FILTER STATUS
-        Object.values(uniqueDataMap).forEach(item => {
-
-            let d = item.data;
-            let sVal = d[10] || "";
-
-            hasData = true;
-
-            let agingVal = d[9] || "";
-            let agingColor = "#495057";
-
-            if (d[7] && parseInt(agingVal) < 0 && sVal !== "close") {
-                agingColor = "red";
-            }
-
-            if (sVal === "open") cOpen++;
-            else if (sVal === "process") cProcess++;
-            else if (sVal === "close") cClose++;
-
-            let row = tbody.insertRow();
-
-            let matterEncoded = encodeURIComponent(d[2] || '');
-            let problemEncoded = encodeURIComponent(d[3] || '');
-
-            row.innerHTML = `
-                <td>${d[0] || ''}</td>
-                <td>${item.pathBulan} - ${item.pathMinggu} - ${item.pathHari}</td>
-                <td>${(d[2]||'').replace(/\n/g, '<br>')}</td>
-                <td>${(d[3]||'').replace(/\n/g, '<br>')}</td>
-                <td>${item.infoAsal}</td>
-                <td>${d[5] || ''}</td>
-                <td>${d[6] || ''}</td>
-                <td>${d[7] || ''}</td>
-                <td>${d[8] || ''}</td>
-                <td style="color:${agingColor}; font-weight:bold;">${agingVal}</td>
-                <td style="font-weight:bold; text-transform:uppercase;">${sVal}</td>
-                <td>${(d[11]||'').replace(/\n/g, '<br>')}</td>
-                <td>
-                    <button onclick="hapusBarisGlobal(this)"
-                        data-t="${item.pathTahun}"
-                        data-b="${item.pathBulan}"
-                        data-m="${item.pathMinggu}"
-                        data-h="${item.pathHari}"
-                        data-matters="${matterEncoded}"
-                        data-problem="${problemEncoded}">
-                        ✖
-                    </button>
-                </td>
-            `;
+            let input = td.querySelector("input, textarea, select");
+            rowData.push(input ? input.value : td.innerText);
         });
 
-        document.getElementById("countOpen").innerText = cOpen;
-        document.getElementById("countProcess").innerText = cProcess;
-        document.getElementById("countClose").innerText = cClose;
+        if (rowData.length) ws_data.push(rowData);
+    });
+
+    let ws = XLSX.utils.aoa_to_sheet(ws_data);
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+    XLSX.writeFile(wb, isSummaryMode ? "Global.xlsx" : "Harian.xlsx");
+}
+
+// ================= TABLE =================
+function updateNomor() {
+    let idx = 1;
+    document.querySelectorAll("#momTable tbody tr").forEach(r => {
+        if (r.style.display === "none") return;
+        let no = r.querySelector(".no");
+        if (no) no.value = idx++;
+    });
+}
+
+function tambah() {
+    let tbody = document.querySelector("#momTable tbody");
+    let row = document.createElement("tr");
+
+    row.innerHTML = `
+    <td><input class="no" readonly></td>
+    <td><input class="cell-hari"></td>
+    <td><textarea></textarea></td>
+    <td><textarea></textarea></td>
+    <td><input type="date"></td>
+    <td><input></td>
+    <td><input></td>
+    <td><input type="date"></td>
+    <td><input type="date"></td>
+    <td><span></span></td>
+    <td>
+        <select>
+            <option></option>
+            <option value="open">Open</option>
+            <option value="process">Process</option>
+            <option value="close">Close</option>
+        </select>
+    </td>
+    <td><textarea></textarea></td>
+    <td class="col-del">
+        <button onclick="hapusBaris(this)">✖</button>
+    </td>
+    `;
+
+    tbody.appendChild(row);
+    updateNomor();
+    return row;
+}
+
+function hapusBaris(btn){
+    btn.closest("tr").remove();
+    updateNomor();
+}
+
+// ================= GLOBAL SUMMARY FIX =================
+window.loadGlobalSummary = async function() {
+    isSummaryMode = true;
+
+    document.getElementById("momContainer").style.display = "block";
+    document.getElementById("actionButtons").style.display = "none";
+    document.getElementById("judul").innerText = "GLOBAL SUMMARY (NO DOUBLE)";
+
+    document.getElementById("colDelete").style.display = "none";
+
+    let tbody = document.querySelector("#momTable tbody");
+    tbody.innerHTML = "";
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "mom"));
+
+        let mapData = new Map();
+
+        querySnapshot.forEach(doc => {
+            let d = doc.data();
+            if (!d.matters) return;
+
+            let key = d.matters.toLowerCase().trim();
+            let time = d.timestamp ? new Date(d.timestamp).getTime() : 0;
+
+            if (!mapData.has(key)) {
+                mapData.set(key, d);
+            } else {
+                let old = mapData.get(key);
+                let oldTime = old.timestamp ? new Date(old.timestamp).getTime() : 0;
+
+                if (time > oldTime) {
+                    mapData.set(key, d);
+                }
+            }
+        });
+
+        let finalData = Array.from(mapData.values());
+
+        finalData.sort((a,b)=>{
+            let ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            let tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return tb - ta;
+        });
+
+        finalData.forEach(d => {
+            let row = tambah();
+
+            row.cells[1].querySelector("input").value = d.hari || "";
+            row.cells[2].querySelector("textarea").value = d.matters || "";
+            row.cells[3].querySelector("textarea").value = d.problem || "";
+            row.cells[4].querySelector("input").value = d.tanggal || "";
+            row.cells[5].querySelector("input").value = d.pic || "";
+            row.cells[6].querySelector("input").value = d.epc || "";
+            row.cells[7].querySelector("input").value = d.due || "";
+            row.cells[8].querySelector("input").value = d.done || "";
+            row.cells[10].querySelector("select").value = d.status || "";
+            row.cells[11].querySelector("textarea").value = d.remarks || "";
+
+            // readonly (AMAN)
+            row.querySelectorAll("input, textarea").forEach(el=>{
+                el.setAttribute("readonly", true);
+            });
+
+            row.querySelectorAll("select").forEach(el=>{
+                el.setAttribute("disabled", true);
+            });
+
+            row.querySelector(".col-del").style.display = "none";
+        });
 
         updateNomor();
 
-        if (!hasData) {
-            tbody.innerHTML = "<tr><td colspan='13'>Tidak ada data</td></tr>";
-        }
-
-    } catch (e) {
+    } catch(e){
         console.error(e);
-        tbody.innerHTML = "<tr><td colspan='13' style='color:red;'>Gagal load data</td></tr>";
+        alert("Gagal ambil data");
     }
 };
