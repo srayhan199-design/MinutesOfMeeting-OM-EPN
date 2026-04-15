@@ -5,7 +5,6 @@ window.simpanKeCloud = async function() {
         return;
     }
 
-    // Kumpulkan data dari tabel
     let rows = document.querySelectorAll("#momTable tbody tr");
     let dataToSave = [];
 
@@ -13,7 +12,7 @@ window.simpanKeCloud = async function() {
         if (row.style.display === "none") return;
         
         let matters = row.querySelector(".col-matters textarea")?.value.trim();
-        if (!matters) return; // Abaikan baris tanpa matters
+        if (!matters) return;
 
         let data = {
             matters: matters,
@@ -32,6 +31,7 @@ window.simpanKeCloud = async function() {
             minggu: week,
             hariNama: day
         };
+
         dataToSave.push(data);
     });
 
@@ -41,9 +41,8 @@ window.simpanKeCloud = async function() {
     }
 
     try {
-        // Ambil semua dokumen yang sudah ada dari Firestore
         const querySnapshot = await getDocs(collection(db, "mom"));
-        let existingMap = new Map(); // key: matters lowercase, value: doc id
+        let existingMap = new Map();
 
         querySnapshot.forEach(docSnap => {
             let mattersExist = docSnap.data().matters?.toLowerCase().trim();
@@ -52,19 +51,16 @@ window.simpanKeCloud = async function() {
             }
         });
 
-        // Proses setiap data: update jika matters sudah ada, else tambah baru
         for (let data of dataToSave) {
             let key = data.matters.toLowerCase().trim();
 
             if (existingMap.has(key)) {
-                // ================= PERUBAHAN DI SINI =================
                 let docId = existingMap.get(key);
                 const docRef = doc(db, "mom", docId);
                 const docSnap = await getDoc(docRef);
-
                 let oldData = docSnap.data();
-                let history = oldData.history || [];
 
+                let history = oldData.history || [];
                 history.push(data);
 
                 await updateDoc(docRef, {
@@ -72,23 +68,18 @@ window.simpanKeCloud = async function() {
                 });
 
                 console.log(`Merged: ${data.matters}`);
-                // ================= END PERUBAHAN =================
-
             } else {
-                // ================= PERUBAHAN DI SINI =================
                 await addDoc(collection(db, "mom"), {
                     matters: data.matters,
                     history: [data]
                 });
 
                 console.log(`Added: ${data.matters}`);
-                // ================= END PERUBAHAN =================
             }
         }
 
-        alert(`Berhasil menyimpan ${dataToSave.length} data (duplikat matters digabung).`);
-        
-        // Optional: refresh tampilan jika perlu
+        alert(`Berhasil menyimpan ${dataToSave.length} data (multi row dalam 1 matters).`);
+
         if (typeof window.loadHariIni === 'function') window.loadHariIni();
 
     } catch (error) {
