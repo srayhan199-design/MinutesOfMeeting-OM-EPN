@@ -1,10 +1,11 @@
-// ================= SIMPAN KE CLOUD (SUPPORT MULTI ROW PER MATTERS) =================
+// ================= SIMPAN KE CLOUD DENGAN MERGE BERDASARKAN MATTERS =================
 window.simpanKeCloud = async function() {
     if (isSummaryMode) {
         alert("Tidak bisa menyimpan dalam mode Global Summary. Kembali ke mode harian terlebih dahulu.");
         return;
     }
 
+    // Kumpulkan data dari tabel
     let rows = document.querySelectorAll("#momTable tbody tr");
     let dataToSave = [];
 
@@ -12,7 +13,7 @@ window.simpanKeCloud = async function() {
         if (row.style.display === "none") return;
         
         let matters = row.querySelector(".col-matters textarea")?.value.trim();
-        if (!matters) return;
+        if (!matters) return; // Abaikan baris tanpa matters
 
         let data = {
             matters: matters,
@@ -31,7 +32,6 @@ window.simpanKeCloud = async function() {
             minggu: week,
             hariNama: day
         };
-
         dataToSave.push(data);
     });
 
@@ -41,8 +41,9 @@ window.simpanKeCloud = async function() {
     }
 
     try {
+        // Ambil semua dokumen yang sudah ada dari Firestore
         const querySnapshot = await getDocs(collection(db, "mom"));
-        let existingMap = new Map();
+        let existingMap = new Map(); // key: matters lowercase, value: doc id
 
         querySnapshot.forEach(docSnap => {
             let mattersExist = docSnap.data().matters?.toLowerCase().trim();
@@ -51,83 +52,47 @@ window.simpanKeCloud = async function() {
             }
         });
 
+        // Proses setiap data: update jika matters sudah ada, else tambah baru
         for (let data of dataToSave) {
             let key = data.matters.toLowerCase().trim();
 
             if (existingMap.has(key)) {
+                // ================= PERUBAHAN DI SINI =================
                 let docId = existingMap.get(key);
                 const docRef = doc(db, "mom", docId);
                 const docSnap = await getDoc(docRef);
-                let oldData = docSnap.data();
 
+                let oldData = docSnap.data();
                 let history = oldData.history || [];
+
                 history.push(data);
 
-                await updateDoc(docRef, { history: history });
+                await updateDoc(docRef, {
+                    history: history
+                });
 
                 console.log(`Merged: ${data.matters}`);
+                // ================= END PERUBAHAN =================
+
             } else {
+                // ================= PERUBAHAN DI SINI =================
                 await addDoc(collection(db, "mom"), {
                     matters: data.matters,
                     history: [data]
                 });
 
-                console.log(`Added new matters: ${data.matters}`);
+                console.log(`Added: ${data.matters}`);
+                // ================= END PERUBAHAN =================
             }
         }
 
-        alert(`Berhasil menyimpan ${dataToSave.length} data (multi row dalam 1 matters).`);
-
+        alert(`Berhasil menyimpan ${dataToSave.length} data (duplikat matters digabung).`);
+        
+        // Optional: refresh tampilan jika perlu
         if (typeof window.loadHariIni === 'function') window.loadHariIni();
 
     } catch (error) {
         console.error("Error menyimpan data: ", error);
         alert("Gagal menyimpan ke Cloud. Periksa koneksi dan izin database.");
-    }
-};
-
-
-// ================= LOAD DATA KE TABEL =================
-window.loadHariIni = async function() {
-    let tbody = document.querySelector("#momTable tbody");
-    tbody.innerHTML = "";
-
-    try {
-        const querySnapshot = await getDocs(collection(db, "mom"));
-
-        querySnapshot.forEach(docSnap => {
-            let docData = docSnap.data();
-            let matters = docData.matters;
-
-            let history = docData.history || [];
-
-            history.forEach(item => {
-                let row = document.createElement("tr");
-
-                row.innerHTML = `
-                    <td class="col-matters"><textarea>${matters}</textarea></td>
-                    <td class="col-hari"><input value="${item.hari || ""}"></td>
-                    <td class="col-problem"><textarea>${item.problem || ""}</textarea></td>
-                    <td class="col-tanggal"><input value="${item.tanggal || ""}"></td>
-                    <td class="col-pic"><input value="${item.pic || ""}"></td>
-                    <td class="col-epc"><input value="${item.epc || ""}"></td>
-                    <td class="col-due"><input value="${item.due || ""}"></td>
-                    <td class="col-done"><input value="${item.done || ""}"></td>
-                    <td class="col-status">
-                        <select>
-                            <option ${item.status === "Open" ? "selected" : ""}>Open</option>
-                            <option ${item.status === "Progress" ? "selected" : ""}>Progress</option>
-                            <option ${item.status === "Done" ? "selected" : ""}>Done</option>
-                        </select>
-                    </td>
-                    <td class="col-remarks"><textarea>${item.remarks || ""}</textarea></td>
-                `;
-
-                tbody.appendChild(row);
-            });
-        });
-
-    } catch (error) {
-        console.error("Error load data:", error);
     }
 };
