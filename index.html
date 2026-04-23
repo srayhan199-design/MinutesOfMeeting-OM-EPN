@@ -8,7 +8,10 @@
 
     <link rel="stylesheet" href="style.css">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+
 </head>
 
 <body>
@@ -98,7 +101,7 @@
             <div class="header-controls">
                 <h2 id="judul"></h2>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <button class="add-btn" style="background:#27ae60; margin: 0; padding: 10px 15px;" onclick="exportKeExcel()">📥 Download Excel</button>
+                    <button class="add-btn" style="background:#27ae60; margin: 0; padding: 10px 15px;" onclick="exportKePdf()">📥 Download Pdf</button>
                     <input type="text" id="searchInput" class="search-bar" onkeyup="cariData()" placeholder="🔍 Cari data...">
                 </div>
             </div>
