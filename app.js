@@ -1,3 +1,4 @@
+const db = firebase.firestore();
 // ================= VARIABEL GLOBAL =================
 let tahun = "2026";
 let month = "";
