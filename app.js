@@ -305,191 +305,101 @@ function pilihHari(h) {
 function kembaliHari() { document.getElementById("momContainer").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
 function kembaliMinggu() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; triggerFade("weekMenu"); }
 
-// ================= GLOBAL SUMMARY: VERSI FINAL ANTI-DUPLIKAT ==================
-
-window.loadGlobalSummary = async function() {
-
-    isSummaryMode = true;
-
-    resetDisplay();
-
+// ================= MONTHLY SUMMARY (PENGGANTI GLOBAL SUMMARY) =================
+window.loadMonthlySummary = async function(targetMonth) {
+    // Gunakan window. supaya variabel global di app.js terbaca
+    window.isSummaryMode = true; 
+    
+    if (typeof resetDisplay === "function") resetDisplay();
+    
     document.getElementById("momContainer").style.display = "block";
-
     document.getElementById("actionButtons").style.display = "none"; 
-
-    document.getElementById("judul").innerText = `GLOBAL SUMMARY - ALL TIME (Latest Update)`;
-
+    document.getElementById("judul").innerText = `SUMMARY BULAN ${targetMonth.toUpperCase()} ${window.tahun || "2026"}`;
     document.getElementById("colDelete").style.display = "none";
 
-
-
     let tbody = document.querySelector("#momTable tbody");
-
-    tbody.innerHTML = ""; 
-
-
+    tbody.innerHTML = "<tr><td colspan='13' style='color:blue; padding:20px; text-align:center;'>Sedang merangkum data dari database...</td></tr>";
 
     try {
-
-        // Ambil semua data dari Firebase
-
-        const querySnapshot = await db.collection("mom").get();
-
+        // MENGAMBIL DATA KHUSUS BULAN YANG DIPILIH DARI REALTIME DATABASE
+        let tahunAktif = window.tahun || "2026";
+        const snapshot = await get(ref(db, `MOM/${tahunAktif}/${targetMonth}`));
+        
         let saringanData = {};
 
+        if (snapshot.exists()) {
+            const dataBulanIni = snapshot.val(); 
+            // Bentuk data: { "Minggu 1": { "Senin": [...], "Selasa": [...] } }
 
+            // Looping per Minggu
+            for (let minggu in dataBulanIni) {
+                // Looping per Hari
+                for (let hari in dataBulanIni[minggu]) {
+                    let dataHarian = dataBulanIni[minggu][hari];
 
-        querySnapshot.forEach((doc) => {
+                    // Cek isi data per baris
+                    dataHarian.forEach(d => {
+                        let matters = d[2] || "";
+                        let problem = d[3] || "";
+                        if (!matters) return;
 
-            let data = doc.data();
+                        // --- LOGIKA ANTI DUPLIKAT ---
+                        let cleanMatters = matters.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                        let cleanProblem = problem.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                        let kunciUnik = cleanMatters + "_" + cleanProblem;
 
-            if (!data.matters) return;            // --- LOGIKA PENGUNCI (SANGAT KETAT) ---
-            // Kita hapus spasi di awal/akhir, jadikan huruf kecil, dan hapus karakter aneh.
-            // tujuannya supaya "PAMA Baya" dan "pamabaya " dianggap SAMA.
-            let cleanMatters = (data.matters || "").toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-            let cleanProblem = (data.problem || "").toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-            let kunciUnik = cleanMatters + "_" + cleanProblem;
-
-            // Ambil waktu data (timestamp)
-            let waktuDataBaru = data.timestamp ? new Date(data.timestamp).getTime() : 0;
-
-            // Jika kunci belum ada, simpan.
-            // Jika kunci sudah ada, bandingkan waktunya. Ambil yang paling baru (terupdate).
-            if (!saringanData[kunciUnik]) {
-                saringanData[kunciUnik] = data;
-            } else {
-                let waktuDataLama = saringanData[kunciUnik].timestamp ? new Date(saringanData[kunciUnik].timestamp).getTime() : 0;
-                if (waktuDataBaru > waktuDataLama) {
-                    saringanData[kunciUnik] = data; // Timpa data lama dengan yang lebih baru
+                        // Karena looping berjalan berurutan (Senin -> Selasa -> dst),
+                        // Data di hari yang lebih baru otomatis menimpa (update) data lama di saringan
+                        saringanData[kunciUnik] = d; 
+                    });
                 }
             }
-        });
 
-        // Ubah objek saringan menjadi list untuk ditampilkan
-        let dataTerbaru = Object.values(saringanData);
+            tbody.innerHTML = "";
+            let dataTerbaru = Object.values(saringanData);
 
-        // Urutkan berdasarkan waktu paling baru di atas
-        dataTerbaru.sort((a, b) => {
-            let timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-            let timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-            return timeB - timeA;
-        });
+            if (dataTerbaru.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Tidak ada pekerjaan di bulan ini.</td></tr>";
+                return;
+            }
 
-        // Masukkan ke tabel
-        dataTerbaru.forEach(d => {
-            let row = tambah();
-            row.querySelector(".col-hari input").value = d.hari || "-";
-            row.querySelector(".col-matters textarea").value = d.matters || "";
-            row.querySelector(".col-problem textarea").value = d.problem || "";
-            row.querySelector(".col-tanggal input").value = d.tanggal || "";
-            row.querySelector(".col-pic input").value = d.pic || "";
-            row.querySelector(".col-epc input").value = d.epc || "";
-            row.querySelector(".col-due input").value = d.due || "";
-            row.querySelector(".col-done input").value = d.done || "";
-            row.querySelector(".col-status select").value = d.status || "";
-            row.querySelector(".col-remarks textarea").value = d.remarks || "";
-
-            setStatus(row.querySelector(".col-status select"));
-
-            // Kunci input agar tidak bisa diedit di mode Summary
-            row.querySelectorAll("input, textarea, select").forEach(el => {
-                el.disabled = true;
-                el.style.backgroundColor = "transparent";
-                el.style.color = "black";
-            });
-            row.querySelector(".col-del").style.display = "none";
-        });
-        updateNomor();
-
-    } catch (error) {
-        console.error("Gagal load Summary:", error);
-        alert("Terjadi kesalahan saat memuat data.");
-    }
-};
-
-// ================= MONTHLY SUMMARY (OTOMATIS PER BULAN) ==================
-window.loadMonthlySummary = async function(targetMonth) {
-    isSummaryMode = true; // Kita anggap summary mode agar tombol simpan hilang
-    
-    // Siapkan UI tabel
-    document.getElementById("momContainer").style.display = "block";
-    document.getElementById("actionButtons").style.display = "none"; 
-    document.getElementById("judul").innerText = `SUMMARY BULAN ${targetMonth.toUpperCase()} (Latest Update)`;
-    document.getElementById("colDelete").style.display = "none";
-
-    let tbody = document.querySelector("#momTable tbody");
-    tbody.innerHTML = "<tr><td colspan='13' style='text-align:center;'>Sedang merangkum data bulan ini...</td></tr>"; 
-
-    try {
-        const querySnapshot = await db.collection("mom").get();
-        let saringanData = {};
-
-        querySnapshot.forEach((doc) => {
-            let data = doc.data();
-            
-            // FILTER: Hanya ambil data yang bulannya sama dengan yang diklik
-            if (data.month === targetMonth && data.matters) {
+            // Memasukkan data ke tabel (Format array seperti fungsi loadHariIni)
+            dataTerbaru.forEach(d => {
+                let isSub = (d[0] === "-");
+                let row = tambah(isSub); 
+                let elements = row.querySelectorAll("input,textarea,select,span");
                 
-                // Logika Anti-Duplikat (Kunci: Matters + Problem)
-                let cleanMatters = (data.matters || "").toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-                let cleanProblem = (data.problem || "").toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-                let kunciUnik = cleanMatters + "_" + cleanProblem;
-
-                let waktuDataBaru = data.timestamp ? new Date(data.timestamp).getTime() : 0;
-
-                if (!saringanData[kunciUnik]) {
-                    saringanData[kunciUnik] = data;
-                } else {
-                    let waktuDataLama = saringanData[kunciUnik].timestamp ? new Date(saringanData[kunciUnik].timestamp).getTime() : 0;
-                    if (waktuDataBaru > waktuDataLama) {
-                        saringanData[kunciUnik] = data; // Ambil yang paling baru diinput
+                for(let i=0; i < d.length; i++) {
+                    if(!elements[i]) continue;
+                    if(elements[i].tagName === "SPAN") elements[i].innerText = d[i] || "";
+                    else { 
+                        elements[i].value = d[i] || ""; 
+                        if(elements[i].tagName === "TEXTAREA") autoHeight(elements[i]); 
                     }
                 }
-            }
-        });
+                
+                if (typeof setStatus === "function") setStatus(row.querySelector("select")); 
 
-        tbody.innerHTML = ""; 
-        let dataTerbaru = Object.values(saringanData);
-        
-        if(dataTerbaru.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='13' style='text-align:center;'>Belum ada data tersimpan untuk bulan ini.</td></tr>";
-            return;
-        }
-
-        // Urutkan waktu terbaru
-        dataTerbaru.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-        // Tampilkan ke tabel
-        dataTerbaru.forEach(d => {
-            let row = tambah();
-            row.querySelector(".col-hari input").value = d.hari || "-";
-            row.querySelector(".col-matters textarea").value = d.matters || "";
-            row.querySelector(".col-problem textarea").value = d.problem || "";
-            row.querySelector(".col-tanggal input").value = d.tanggal || "";
-            row.querySelector(".col-pic input").value = d.pic || "";
-            row.querySelector(".col-epc input").value = d.epc || "";
-            row.querySelector(".col-due input").value = d.due || "";
-            row.querySelector(".col-done input").value = d.done || "";
-            row.querySelector(".col-status select").value = d.status || "";
-            row.querySelector(".col-remarks textarea").value = d.remarks || "";
-
-            setStatus(row.querySelector(".col-status select"));
-
-            // Mode View-Only (Disable input)
-            row.querySelectorAll("input, textarea, select").forEach(el => {
-                el.disabled = true;
-                el.style.backgroundColor = "transparent";
-                el.style.color = "black";
+                // Kunci input agar tidak bisa diedit di mode Summary
+                row.querySelectorAll("input, textarea, select").forEach(el => {
+                    el.disabled = true;
+                    el.style.backgroundColor = "transparent";
+                    el.style.color = "black";
+                });
+                row.querySelector(".col-del").style.display = "none";
             });
-            row.querySelector(".col-del").style.display = "none";
-        });
-        updateNomor();
+            
+            if (typeof updateNomor === "function") updateNomor();
 
+        } else {
+            tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Belum ada data tersimpan untuk bulan ini.</td></tr>";
+        }
     } catch (error) {
-        console.error("Gagal Monthly Summary:", error);
-        tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; color:red;'>Gagal memuat data.</td></tr>";
+        console.error("Gagal load Monthly Summary:", error);
+        tbody.innerHTML = "<tr><td colspan='13' style='color:red; text-align:center; padding:20px;'>Terjadi kesalahan saat memuat data dari Cloud.</td></tr>";
     }
 };
+
 
 
 // ================= FITUR EXPORT KE PDF (FULL CODE) ==================
