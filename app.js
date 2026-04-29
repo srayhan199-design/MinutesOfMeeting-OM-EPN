@@ -295,20 +295,20 @@ function pilihHari(h) {
 function kembaliHari() { document.getElementById("momContainer").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
 function kembaliMinggu() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; triggerFade("weekMenu"); }
 
-// ================= FITUR BARU: GLOBAL SUMMARY (SARINGAN TERBARU) ==================
+// ================= FITUR GLOBAL SUMMARY (VERSI ANTI-DUPLIKAT) ==================
 window.loadGlobalSummary = async function() {
     isSummaryMode = true;
     resetDisplay();
     document.getElementById("momContainer").style.display = "block";
     document.getElementById("actionButtons").style.display = "none"; 
     document.getElementById("judul").innerText = `GLOBAL SUMMARY - ALL TIME (Latest Update)`;
-
     document.getElementById("colDelete").style.display = "none";
 
     let tbody = document.querySelector("#momTable tbody");
     tbody.innerHTML = ""; 
 
     try {
+        // Ambil semua data dari Cloud/Firebase
         const querySnapshot = await getDocs(collection(db, "mom"));
         let saringanData = {};
 
@@ -316,29 +316,39 @@ window.loadGlobalSummary = async function() {
             let data = doc.data();
             if (!data.matters) return;
 
+            // 1. Buat Kunci Unik (Gabungan Matters & Problem)
+            // Kita bersihkan karakter aneh & spasi supaya "PAMA " dan "pama" dianggap sama
             let cleanMatters = (data.matters || "").toLowerCase().replace(/[^a-z0-9]/g, '');
             let cleanProblem = (data.problem || "").toLowerCase().replace(/[^a-z0-9]/g, '');
-            let kunci = cleanMatters + "_" + cleanProblem;
+            let kunciUnik = cleanMatters + "_" + cleanProblem;
 
+            // 2. Ambil waktu data ini dibuat/disimpan
             let waktuDataBaru = data.timestamp ? new Date(data.timestamp).getTime() : 0;
 
-            if (!saringanData[kunci]) {
-                saringanData[kunci] = data;
+            // 3. LOGIKA SARINGAN:
+            // Jika kunci belum ada, MASUKKAN.
+            // Jika kunci sudah ada, cek: apakah data yang baru ini lebih baru dari yang sudah disimpan?
+            if (!saringanData[kunciUnik]) {
+                saringanData[kunciUnik] = data;
             } else {
-                let waktuDataLama = saringanData[kunci].timestamp ? new Date(saringanData[kunci].timestamp).getTime() : 0;
+                let waktuDataLama = saringanData[kunciUnik].timestamp ? new Date(saringanData[kunciUnik].timestamp).getTime() : 0;
                 if (waktuDataBaru > waktuDataLama) {
-                    saringanData[kunci] = data;
+                    saringanData[kunciUnik] = data; // Ganti data lama dengan yang lebih baru
                 }
             }
         });
 
+        // 4. Ubah objek hasil saringan kembali jadi List (Array)
         let dataTerbaru = Object.values(saringanData);
+
+        // 5. Urutkan berdasarkan waktu (Paling baru muncul paling atas)
         dataTerbaru.sort((a, b) => {
             let timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
             let timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
             return timeB - timeA;
         });
 
+        // 6. Masukkan data hasil saringan ke dalam tabel
         dataTerbaru.forEach(d => {
             let row = tambah();
             row.querySelector(".col-hari input").value = d.hari || "-";
@@ -354,19 +364,22 @@ window.loadGlobalSummary = async function() {
 
             setStatus(row.querySelector(".col-status select"));
 
+            // Mode view only (Summary)
             row.querySelectorAll("input, textarea, select").forEach(el => {
                 el.disabled = true;
                 el.style.backgroundColor = "transparent";
+                el.style.color = "black";
             });
             row.querySelector(".col-del").style.display = "none";
         });
+
         updateNomor();
 
     } catch (error) {
-        console.error("Error mengambil data Global Summary: ", error);
-        alert("Gagal memuat data. Periksa koneksi Database.");
+        console.error("Error Summary:", error);
+        alert("Gagal memuat summary. Periksa koneksi.");
     }
-}; // <--- KURUNG PENUTUP DISINI
+};
 
 // ================= FITUR EXPORT KE PDF ==================
 window.exportKePDF = function() {
