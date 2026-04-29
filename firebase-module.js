@@ -25,19 +25,16 @@ onAuthStateChanged(auth, (user) => {
     const mainApp = document.querySelector(".main");
 
     if (user) {
-        // Jika sudah login: Sembunyikan kotak login, tampilkan aplikasi
         if(loginScreen) loginScreen.style.display = "none";
         if(toolbar) toolbar.style.display = "flex";
         if(mainApp) mainApp.style.display = "flex";
     } else {
-        // Jika belum login: Tampilkan kotak login, sembunyikan aplikasi
         if(loginScreen) loginScreen.style.display = "flex";
         if(toolbar) toolbar.style.display = "none";
         if(mainApp) mainApp.style.display = "none";
     }
 });
 
-// Fungsi tombol Login dipencet
 window.prosesLogin = function() {
     const email = document.getElementById("emailInput").value;
     const pass = document.getElementById("passwordInput").value;
@@ -51,49 +48,44 @@ window.prosesLogin = function() {
     }
 
     btnLogin.innerText = "Mengecek...";
-    
+
     signInWithEmailAndPassword(auth, email, pass)
         .then((userCredential) => {
-            // Berhasil login
             errorText.style.display = "none";
             btnLogin.innerText = "Login";
             document.getElementById("emailInput").value = "";
             document.getElementById("passwordInput").value = "";
         })
         .catch((error) => {
-            // Gagal login
             errorText.innerText = "Login gagal! Cek kembali email & password.";
             errorText.style.display = "block";
             btnLogin.innerText = "Login";
         });
 };
 
-// Fungsi tombol Logout dipencet
 window.prosesLogout = function() {
     if(confirm("Apakah Anda yakin ingin keluar dari sistem?")) {
         signOut(auth).then(() => {
             alert("Berhasil Logout!");
-            home(); // Reset tampilan ke home
+            home(); 
         }).catch((error) => {
             console.error("Gagal logout:", error);
         });
     }
 };
 
-
 // ================= FUNGSI-FUNGSI DATABASE MOM =================
-
 function parseGroups(rawData) {
     let groups = [];
     let currentGroup = null;
     if(!rawData || !Array.isArray(rawData)) return groups;
-    
+
     rawData.forEach(d => {
         if (d[0] !== "-") { 
             let textMatter = d[2] ? d[2].toString().toLowerCase().replace(/[^a-z0-9]/g, '') : "";
             let key = textMatter; 
             if (key === "") { key = Math.random().toString(); }
-            
+
             currentGroup = { key: key, items: [d], hasActive: (d[10] === "open" || d[10] === "process") };
             groups.push(currentGroup);
         } else { 
@@ -133,9 +125,9 @@ window.loadHariIni = async function() {
     let tbody = document.querySelector("#momTable tbody");
     tbody.innerHTML = "<tr><td colspan='13' style='color:blue; padding:20px;'>Sinkronisasi data dari cloud...</td></tr>";
     try {
-        const currentSnap = await get(child(ref(db), `MOM/${tahun}/${month}/${week}/${day}`));
+        const currentSnap = await get(child(ref(db), `MOM/${window.tahun}/${window.month}/${window.week}/${window.day}`));
         tbody.innerHTML = "";
-        
+
         if (currentSnap.exists()) {
             let data = currentSnap.val();
             data.forEach(d => {
@@ -160,7 +152,7 @@ window.loadHariIni = async function() {
 };
 
 window.tarikDataKemarin = async function() {
-    let prev = window.getHariSebelumnya(tahun, month, week, day);
+    let prev = window.getHariSebelumnya(window.tahun, window.month, window.week, window.day);
     if (parseInt(prev.y) < 2025) { alert("Tidak ada rekaman data sebelum tahun 2025."); return; }
 
     try {
@@ -179,7 +171,7 @@ window.tarikDataKemarin = async function() {
             groups.forEach(g => {
                 if (g.hasActive) {
                     let kMatter = g.items[0][2] ? g.items[0][2].toString().toLowerCase().replace(/[^a-z0-9]/g, '') : "";
-                    
+
                     if (!existingKeys.includes(kMatter) || kMatter === "") {
                         hasCarry = true;
                         g.items.forEach(d => {
@@ -212,141 +204,100 @@ window.tarikDataKemarin = async function() {
     }
 };
 
-// ================= GLOBAL SUMMARY UPDATE =================
-window.loadSummaryGlobal = async function() {
-    isSummaryMode = true; resetDisplay();
+// ================= MONTHLY SUMMARY (PENGGANTI GLOBAL SUMMARY) =================
+window.loadMonthlySummary = async function(targetMonth) {
+    window.isSummaryMode = true; 
+
+    if (typeof resetDisplay === "function") resetDisplay();
+
     document.getElementById("momContainer").style.display = "block";
-    document.getElementById("statContainer").style.display = "flex";
-    triggerFade("momContainer");
     document.getElementById("actionButtons").style.display = "none"; 
-    document.getElementById("colDelete").style.display = "table-cell"; 
-    document.getElementById("backToDayBtn").onclick = home; 
-    document.getElementById("judul").innerText = "Global Summary (Semua Tahun)";
+    document.getElementById("judul").innerText = `SUMMARY BULAN ${targetMonth.toUpperCase()} ${window.tahun || "2026"}`;
+    document.getElementById("colDelete").style.display = "none";
 
     let tbody = document.querySelector("#momTable tbody");
-    tbody.innerHTML = "<tr><td colspan='13' style='color:blue; padding:20px;'>Scanning Database 2025-2035...</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='13' style='color:blue; padding:20px; text-align:center;'>Sedang merangkum data dari database...</td></tr>";
 
     try {
-        const snapshot = await get(ref(db, "MOM"));
-        if (snapshot.exists()) {
-            tbody.innerHTML = "";
-            const allData = snapshot.val();
-            
-            // Menggunakan Array untuk menyimpan SEMUA data histori
-            let allGlobalGroups = []; 
-            
-            for (let thn = 2025; thn <= 2035; thn++) {
-                let tKey = thn.toString();
-                if (allData[tKey]) {
-                    urutanBulan.forEach(bln => {
-                        if (allData[tKey][bln]) {
-                            ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4"].forEach(mgg => {
-                                if (allData[tKey][bln][mgg]) {
-                                    urutanHari.forEach(hr => {
-                                        if (allData[tKey][bln][mgg][hr]) {
-                                            let rawData = allData[tKey][bln][mgg][hr];
-                                            let infoAsal = `${tKey}-${bln.substring(0,3)}-${mgg.split(' ')[1]}- ${hr}`;
+        let tahunAktif = window.tahun || "2026";
+        const snapshot = await get(ref(db, `MOM/${tahunAktif}/${targetMonth}`));
 
-                                            let groups = parseGroups(rawData);
-                                            groups.forEach(g => {
-                                                g.items.forEach(d => {
-                                                    d.infoAsal = infoAsal;
-                                                    d.pathTahun = tKey; d.pathBulan = bln; d.pathMinggu = mgg; d.pathHari = hr;
-                                                });
-                                                allGlobalGroups.push(g); // Simpan semuanya
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        }
+        let saringanData = {};
+
+        if (snapshot.exists()) {
+            const dataBulanIni = snapshot.val(); 
+
+            for (let minggu in dataBulanIni) {
+                for (let hari in dataBulanIni[minggu]) {
+                    let dataHarian = dataBulanIni[minggu][hari];
+
+                    dataHarian.forEach(d => {
+                        let matters = d[2] || "";
+                        let problem = d[3] || "";
+                        if (!matters) return;
+
+                        let cleanMatters = matters.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                        let cleanProblem = problem.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                        let kunciUnik = cleanMatters + "_" + cleanProblem;
+
+                        saringanData[kunciUnik] = d; 
                     });
                 }
             }
 
-            let cOpen = 0, cProcess = 0, cClose = 0;
-            let hasData = false;
+            tbody.innerHTML = "";
+            let dataTerbaru = Object.values(saringanData);
 
-            allGlobalGroups.forEach(g => {
-                g.items.forEach(d => {
-                    if (!d[2] || d[2].toString().trim().length < 2) return; 
-                    hasData = true;
+            if (dataTerbaru.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Tidak ada pekerjaan di bulan ini.</td></tr>";
+                return;
+            }
 
-                    let sVal = d[10] || ""; let agingVal = d[9] || ""; let agingColor = "#495057";
-                    if (d[7] && parseInt(agingVal) < 0 && sVal !== "close") { agingColor = "red"; }
-                    if(sVal === "open") cOpen++; else if(sVal === "process") cProcess++; else if(sVal === "close") cClose++;
+            dataTerbaru.forEach(d => {
+                let isSub = (d[0] === "-");
+                let row = tambah(isSub); 
+                let elements = row.querySelectorAll("input,textarea,select,span");
 
-                    let isSub = (d[0] === "-");
-                    let rowClass = isSub ? "sub-row" : "";
-                    let row = tbody.insertRow();
-                    row.className = rowClass;
-                    
-                    let matterEncoded = encodeURIComponent(d[2] || '');
-                    let problemEncoded = encodeURIComponent(d[3] || '');
+                for(let i=0; i < d.length; i++) {
+                    if(!elements[i]) continue;
+                    if(elements[i].tagName === "SPAN") elements[i].innerText = d[i] || "";
+                    else { 
+                        elements[i].value = d[i] || ""; 
+                        if(elements[i].tagName === "TEXTAREA") autoHeight(elements[i]); 
+                    }
+                }
 
-                    row.innerHTML = `
-                        <td class="col-no"><div style="font-weight:bold; font-size:16px;">${d[0] || ''}</div></td>
-                        <td class="col-hari"><div style="padding:8px; font-weight:bold;">${d.pathBulan} - ${d.pathMinggu} - ${d.pathHari}</div></td>
-                        <td class="col-matters" style="text-align: left;"><div style="padding:8px;">${(d[2]||'').replace(/\n/g, '<br>')}</div></td>
-                        <td class="col-problem" style="text-align: left;"><div style="padding:8px;">${(d[3]||'').replace(/\n/g, '<br>')}</div></td>
-                        <td class="col-tanggal"><div style="padding:8px; font-weight:bold; color:#2c3e50;">${d.infoAsal}</div></td>
-                        <td class="col-pic"><div style="padding:8px;">${d[5] || ''}</div></td>
-                        <td class="col-epc"><div style="padding:8px;">${d[6] || ''}</div></td>
-                        <td class="col-due"><div style="padding:8px;">${d[7] || ''}</div></td>
-                        <td class="col-done"><div style="padding:8px;">${d[8] || ''}</div></td>
-                        <td class="col-aging"><div style="padding:8px; font-weight:bold; color:${agingColor};">${agingVal}</div></td>
-                        <td class="col-status status-${sVal}"><div style="padding:8px; font-weight:bold; color:${sVal==='process'?'black':'white'}; text-transform:uppercase;">${sVal}</div></td>
-                        <td class="col-remarks" style="text-align: left;"><div style="padding:8px;">${(d[11]||'').replace(/\n/g, '<br>')}</div></td>
-                        <td class="col-del" style="white-space:nowrap;">
-                            <button onclick="hapusBarisGlobal(this)" data-t="${d.pathTahun}" data-b="${d.pathBulan}" data-m="${d.pathMinggu}" data-h="${d.pathHari}" data-matters="${matterEncoded}" data-problem="${problemEncoded}" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px;" title="Hapus Data Ini Secara Permanen dari Database">✖</button>
-                        </td>
-                    `;
+                if (typeof setStatus === "function") setStatus(row.querySelector("select")); 
+
+                row.querySelectorAll("input, textarea, select").forEach(el => {
+                    el.disabled = true;
+                    el.style.backgroundColor = "transparent";
+                    el.style.color = "black";
                 });
+                row.querySelector(".col-del").style.display = "none";
             });
-            document.getElementById("countOpen").innerText = cOpen; document.getElementById("countProcess").innerText = cProcess; document.getElementById("countClose").innerText = cClose;
-            updateNomor(); 
-            if (!hasData) tbody.innerHTML = "<tr><td colspan='13' style='padding:20px;'>Data Tidak Ditemukan.</td></tr>";
-        } else { tbody.innerHTML = "<tr><td colspan='13' style='padding:20px;'>Data Tidak Ditemukan.</td></tr>"; }
-    } catch (e) { console.error(e); tbody.innerHTML = "<tr><td colspan='13' style='color:red;'>Gagal memuat Global Summary.</td></tr>"; }
-};
 
-window.hapusBarisGlobal = async function(btn) {
-    let t = btn.getAttribute('data-t'); let b = btn.getAttribute('data-b'); let m = btn.getAttribute('data-m'); let h = btn.getAttribute('data-h');
-    let mattersStr = decodeURIComponent(btn.getAttribute('data-matters'));
-    let problemStr = decodeURIComponent(btn.getAttribute('data-problem'));
+            if (typeof updateNomor === "function") updateNomor();
 
-    if (!confirm(`Hati-hati! Apakah Anda yakin ingin menghapus data ini secara PERMANEN dari tanggal ${t}-${b}-${m}-${h}?`)) return;
-
-    let row = btn.closest("tr");
-    row.style.opacity = "0.5";
-    
-    try {
-        let path = `MOM/${t}/${b}/${m}/${h}`;
-        let snap = await get(ref(db, path));
-        
-        if (snap.exists()) {
-            let dataArray = snap.val();
-            let newData = dataArray.filter(d => { let isMatch = (d[2] || "") === mattersStr && (d[3] || "") === problemStr; return !isMatch; });
-            if (newData.length === 0) newData = null; 
-
-            await set(ref(db, path), newData);
-            row.remove(); updateNomor();
-            alert("Data berhasil dihapus permanen dari Cloud!");
-        } else { alert("Data tidak ditemukan di database (Mungkin sudah terhapus sebelumnya)."); row.remove(); }
-    } catch (err) { console.error(err); alert("Gagal menghapus data dari server."); row.style.opacity = "1"; }
+        } else {
+            tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Belum ada data tersimpan untuk bulan ini.</td></tr>";
+        }
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan='13' style='color:red; text-align:center; padding:20px;'>Error Asli: <b>${error.message}</b></td></tr>`;
+    }
 };
 
 window.save = async function() {
-    if(isSummaryMode) return;
+    if(window.isSummaryMode) return;
     let data = [];
-    
+
     document.querySelectorAll("#momTable tbody tr").forEach(r => {
         let rowData = [];
         r.querySelectorAll("input,textarea,select,span").forEach(el => rowData.push(el.value || el.innerText || ""));
-        
+
         let matters = rowData[2] ? rowData[2].trim() : "";
         let problem = rowData[3] ? rowData[3].trim() : "";
-        
+
         if (matters !== "" || problem !== "") {
             data.push(rowData);
         }
@@ -357,21 +308,21 @@ window.save = async function() {
     }
 
     try { 
-        await set(ref(db, `MOM/${tahun}/${month}/${week}/${day}`), data); 
-        
+        await set(ref(db, `MOM/${window.tahun}/${window.month}/${window.week}/${window.day}`), data); 
+
         if (data === null) {
-            alert(`Semua data di hari ${day} berhasil dikosongkan dari Cloud!`);
+            alert(`Semua data di hari ${window.day} berhasil dikosongkan dari Cloud!`);
         } else {
-            alert(`Data Berhasil disimpan di folder ${tahun}! (Baris kosong otomatis diabaikan)`);
+            alert(`Data Berhasil disimpan di folder ${window.tahun}! (Baris kosong otomatis diabaikan)`);
         }
-        
+
         loadHariIni();
-        
+
     } catch (error) { alert("Gagal menyimpan data MOM."); console.error(error); }
 };
 
 window.loadKegiatan = function() {
-    isSummaryMode = false; resetDisplay();
+    window.isSummaryMode = false; resetDisplay();
     document.getElementById("kegiatanContainer").style.display = "block";
     document.getElementById("formUploadFoto").style.display = "none";
     document.getElementById("btnToggleUpload").style.display = "inline-block";
@@ -422,7 +373,7 @@ window.fetchFoto = async function(filterKategori = 'Semua') {
 
     const gallery = document.getElementById("galleryContainer");
     gallery.innerHTML = "<p>Memuat foto kegiatan...</p>";
-    
+
     try {
         const snap = await get(ref(db, `Kegiatan`));
         gallery.innerHTML = ""; let hasPhoto = false;
@@ -430,13 +381,13 @@ window.fetchFoto = async function(filterKategori = 'Semua') {
         if (snap.exists()) {
             const data = snap.val();
             const listKategori = ["Lapangan", "Meeting", "Bebas"]; 
-            
+
             listKategori.forEach(kat => {
                 if (filterKategori !== 'Semua' && filterKategori !== kat) return;
-                
+
                 if (data[kat]) {
                     let keys = Object.keys(data[kat]).reverse(); 
-                    
+
                     keys.forEach(key => {
                         if(kat === 'Gallery') return; 
                         hasPhoto = true;
@@ -449,7 +400,7 @@ window.fetchFoto = async function(filterKategori = 'Semua') {
                         let safeComment = imgComment.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '<br>');
 
                         const card = document.createElement("div"); card.className = "photo-card";
-                        
+
                         card.innerHTML = `
                             <div class="photo-img-wrapper">
                                 <img src="${imgSrc}" alt="Kegiatan ${kat}" loading="lazy" onclick="bukaLightbox(this.src, '${safeComment}')" title="Klik untuk perbesar">
