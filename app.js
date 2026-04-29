@@ -302,7 +302,7 @@ window.loadGlobalSummary = async function() {
     document.getElementById("momContainer").style.display = "block";
     document.getElementById("actionButtons").style.display = "none"; 
     document.getElementById("judul").innerText = `GLOBAL SUMMARY - ALL TIME (Latest Update)`;
-    
+
     // Sembunyikan kolom delete di mode summary
     document.getElementById("colDelete").style.display = "none";
 
@@ -316,8 +316,15 @@ window.loadGlobalSummary = async function() {
         querySnapshot.forEach((doc) => {
             let data = doc.data();
             if (!data.matters) return;
-            
-            let kunci = data.matters.toLowerCase().trim();
+
+            // --- PERBAIKAN ANTI-DOBEL DI SINI ---
+            // Menghapus semua spasi, enter, dan simbol. Jadi "PAMA Baya" dan "pamabaya " dianggap SAMA.
+            // Menggabungkan Matters dan Problem sebagai kunci unik.
+            let cleanMatters = (data.matters || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+            let cleanProblem = (data.problem || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+            let kunci = cleanMatters + "_" + cleanProblem;
+            // ------------------------------------
+
             let waktuDataBaru = data.timestamp ? new Date(data.timestamp).getTime() : 0;
 
             if (!saringanData[kunci]) {
@@ -331,7 +338,7 @@ window.loadGlobalSummary = async function() {
         });
 
         let dataTerbaru = Object.values(saringanData);
-        
+
         // Urutkan biar yang paling baru ada di atas
         dataTerbaru.sort((a, b) => {
             let timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
@@ -351,9 +358,9 @@ window.loadGlobalSummary = async function() {
             row.querySelector(".col-done input").value = d.done || "";
             row.querySelector(".col-status select").value = d.status || "";
             row.querySelector(".col-remarks textarea").value = d.remarks || "";
-            
+
             setStatus(row.querySelector(".col-status select"));
-            
+
             // Buat Read-Only agar tidak sengaja terubah di mode Summary
             row.querySelectorAll("input, textarea, select").forEach(el => {
                 el.disabled = true;
@@ -368,4 +375,4 @@ window.loadGlobalSummary = async function() {
         console.error("Error mengambil data Global Summary: ", error);
         alert("Gagal memuat data. Periksa koneksi Database.");
     }
-        }
+}
