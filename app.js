@@ -1,10 +1,11 @@
-// ================= VARIABEL GLOBAL =================
-let tahun = "2026";
-let month = "";
-let week = "";
-let day = "";
-let isSummaryMode = false;
+// ================= VARIABEL GLOBAL (YANG BENAR) =================
+window.tahun = "2026";
+window.month = "";
+window.week = "";
+window.day = "";
+window.isSummaryMode = false;
 let currentStatusFilter = 'all'; 
+// (Sisa kode ke bawah tetap sama)
 
 const urutanHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -443,8 +444,8 @@ window.exportKePDF = function() {
     });
 
     // 6. Penamaan File Otomatis
-    let namaFile = isSummaryMode ? "MOM_Global_Summary.pdf" : `MOM_Harian_${day}.pdf`;
-    
+    let namaFile = isSummaryMode ? "MOM_Monthly_Summary.pdf" : `MOM_Harian_${day}.pdf`;
+
     // 7. Download File
     doc.save(namaFile);
 };
