@@ -356,11 +356,11 @@ window.loadMonthlySummary = async function(targetMonth) {
         } else {
             tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Belum ada data tersimpan untuk bulan ini.</td></tr>";
         }
-    } catch (error) {
-        console.error("Gagal load Monthly Summary:", error);
-        tbody.innerHTML = "<tr><td colspan='13' style='color:red; text-align:center; padding:20px;'>Terjadi kesalahan saat memuat data dari Cloud.</td></tr>";
+        } catch (error) {
+        tbody.innerHTML = `<tr><td colspan='13' style='color:red; text-align:center; padding:20px;'>Error Asli: <b>${error.message}</b></td></tr>`;
     }
 };
+
 
 
 
