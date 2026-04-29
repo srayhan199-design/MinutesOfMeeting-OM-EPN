@@ -1,4 +1,6 @@
-const db = firebase.firestore();
+// Baris paling atas app.js
+import { db } from './firebase-module.js'; 
+import { ref, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 // ================= VARIABEL GLOBAL =================
 let tahun = "2026";
 let month = "";
@@ -316,17 +318,33 @@ window.loadGlobalSummary = async function() {
     document.getElementById("colDelete").style.display = "none";
 
     let tbody = document.querySelector("#momTable tbody");
-    tbody.innerHTML = ""; 
+    tbody.innerHTML = "<tr><td colspan='13'>Memuat data...</td></tr>"; 
 
     try {
-        // Ambil semua data dari Firebase
-        const querySnapshot = await db.collection("mom").get();
-        let saringanData = {};
-
-        querySnapshot.forEach((doc) => {
-            let data = doc.data();
-            if (!data.matters) return;
-
+        // --- BAGIAN YANG DIGANTI ---
+        // Kita gunakan 'get' dan 'ref' karena kamu pakai Realtime Database
+        const snapshot = await get(ref(db, "MOM")); 
+        
+        if (snapshot.exists()) {
+            tbody.innerHTML = ""; // Bersihkan tulisan memuat
+            const allData = snapshot.val();
+            
+            // Karena Realtime Database strukturnya folder, 
+            // kita harus ambil data di dalam folder tahun/bulan/minggu/hari
+            // atau sesuaikan dengan cara kamu menyimpan datanya.
+            
+            console.log("Data berhasil ditarik:", allData);
+            
+            // Masukkan logika looping data kamu di sini...
+        } else {
+            tbody.innerHTML = "<tr><td colspan='13'>Data kosong di Database.</td></tr>";
+        }
+        // ---------------------------
+    } catch (error) {
+        console.error("Gagal Monthly Summary:", error);
+        tbody.innerHTML = "<tr><td colspan='13' style='color:red;'>Gagal memuat data.</td></tr>";
+    }
+};
             // --- LOGIKA PENGUNCI (SANGAT KETAT) ---
             // Kita hapus spasi di awal/akhir, jadikan huruf kecil, dan hapus karakter aneh.
             // tujuannya supaya "PAMA Baya" dan "pamabaya " dianggap SAMA.
