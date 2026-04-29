@@ -319,7 +319,7 @@ window.loadGlobalSummary = async function() {
 
     try {
         // Ambil semua data dari Firebase
-        const querySnapshot = await getDocs(collection(db, "mom"));
+        const querySnapshot = await db.collection("mom").get();
         let saringanData = {};
 
         querySnapshot.forEach((doc) => {
