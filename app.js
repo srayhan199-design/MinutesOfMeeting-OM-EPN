@@ -9,46 +9,7 @@ let currentStatusFilter = 'all';
 const urutanHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-// ================= FITUR EXPORT KE EXCEL ==================
-window.exportKeExcel = function() {
-    if (typeof XLSX === 'undefined') {
-        alert("Library Excel belum berhasil dimuat. Pastikan koneksi internet lancar dan coba lagi.");
-        return;
-    }
-    let wb = XLSX.utils.book_new();
-    let ws_data = [];
-    
-    let headers = [];
-    document.querySelectorAll("#momTable thead th").forEach(th => {
-        if (th.id !== "colDelete" && th.style.display !== "none") {
-            headers.push(th.innerText);
-        }
-    });
-    ws_data.push(headers);
 
-    document.querySelectorAll("#momTable tbody tr").forEach(tr => {
-        if (tr.style.display === "none") return; 
-        if (tr.cells.length <= 1) return;
-
-        let rowData = [];
-        let cells = tr.querySelectorAll("td");
-        
-        for(let i = 0; i < cells.length; i++) {
-            if(cells[i].classList.contains("col-del") || cells[i].style.display === "none") continue;
-            
-            let val = "";
-            let input = cells[i].querySelector("input, textarea, select");
-            if (input) { val = input.value; } else { val = cells[i].innerText; }
-            rowData.push(val);
-        }
-        if (rowData.length > 0) ws_data.push(rowData);
-    });
-
-    let ws = XLSX.utils.aoa_to_sheet(ws_data);
-    XLSX.utils.book_append_sheet(wb, ws, "Data_MOM");
-    let namaFile = isSummaryMode ? "MOM_Global_Summary.xlsx" : `MOM_Harian_${tahun}_${month}_${week}_${day}.xlsx`;
-    XLSX.writeFile(wb, namaFile);
-}
 
 // ================= VARIABEL UNDO HAPUS =================
 let rowYangDihapus = null;
