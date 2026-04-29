@@ -14,8 +14,8 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const auth = getAuth(app); // Inisialisasi Auth
+export const db = getDatabase(app);
+export const auth = getAuth(app); // Inisialisasi Auth
 
 // ================= SISTEM LOGIN & LOGOUT =================
 // Cek otomatis apakah user sedang login atau belum
