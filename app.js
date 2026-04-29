@@ -295,7 +295,7 @@ function pilihHari(h) {
 function kembaliHari() { document.getElementById("momContainer").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
 function kembaliMinggu() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; triggerFade("weekMenu"); }
 
-// ================= FITUR GLOBAL SUMMARY (VERSI ANTI-DUPLIKAT) ==================
+// ================= GLOBAL SUMMARY: VERSI FINAL ANTI-DUPLIKAT ==================
 window.loadGlobalSummary = async function() {
     isSummaryMode = true;
     resetDisplay();
@@ -308,7 +308,7 @@ window.loadGlobalSummary = async function() {
     tbody.innerHTML = ""; 
 
     try {
-        // Ambil semua data dari Cloud/Firebase
+        // Ambil semua data dari Firebase
         const querySnapshot = await getDocs(collection(db, "mom"));
         let saringanData = {};
 
@@ -316,39 +316,39 @@ window.loadGlobalSummary = async function() {
             let data = doc.data();
             if (!data.matters) return;
 
-            // 1. Buat Kunci Unik (Gabungan Matters & Problem)
-            // Kita bersihkan karakter aneh & spasi supaya "PAMA " dan "pama" dianggap sama
-            let cleanMatters = (data.matters || "").toLowerCase().replace(/[^a-z0-9]/g, '');
-            let cleanProblem = (data.problem || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+            // --- LOGIKA PENGUNCI (SANGAT KETAT) ---
+            // Kita hapus spasi di awal/akhir, jadikan huruf kecil, dan hapus karakter aneh.
+            // tujuannya supaya "PAMA Baya" dan "pamabaya " dianggap SAMA.
+            let cleanMatters = (data.matters || "").toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+            let cleanProblem = (data.problem || "").toLowerCase().trim().replace(/[^a-z0-9]/g, '');
             let kunciUnik = cleanMatters + "_" + cleanProblem;
 
-            // 2. Ambil waktu data ini dibuat/disimpan
+            // Ambil waktu data (timestamp)
             let waktuDataBaru = data.timestamp ? new Date(data.timestamp).getTime() : 0;
 
-            // 3. LOGIKA SARINGAN:
-            // Jika kunci belum ada, MASUKKAN.
-            // Jika kunci sudah ada, cek: apakah data yang baru ini lebih baru dari yang sudah disimpan?
+            // Jika kunci belum ada, simpan.
+            // Jika kunci sudah ada, bandingkan waktunya. Ambil yang paling baru (terupdate).
             if (!saringanData[kunciUnik]) {
                 saringanData[kunciUnik] = data;
             } else {
                 let waktuDataLama = saringanData[kunciUnik].timestamp ? new Date(saringanData[kunciUnik].timestamp).getTime() : 0;
                 if (waktuDataBaru > waktuDataLama) {
-                    saringanData[kunciUnik] = data; // Ganti data lama dengan yang lebih baru
+                    saringanData[kunciUnik] = data; // Timpa data lama dengan yang lebih baru
                 }
             }
         });
 
-        // 4. Ubah objek hasil saringan kembali jadi List (Array)
+        // Ubah objek saringan menjadi list untuk ditampilkan
         let dataTerbaru = Object.values(saringanData);
 
-        // 5. Urutkan berdasarkan waktu (Paling baru muncul paling atas)
+        // Urutkan berdasarkan waktu paling baru di atas
         dataTerbaru.sort((a, b) => {
             let timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
             let timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
             return timeB - timeA;
         });
 
-        // 6. Masukkan data hasil saringan ke dalam tabel
+        // Masukkan ke tabel
         dataTerbaru.forEach(d => {
             let row = tambah();
             row.querySelector(".col-hari input").value = d.hari || "-";
@@ -364,7 +364,7 @@ window.loadGlobalSummary = async function() {
 
             setStatus(row.querySelector(".col-status select"));
 
-            // Mode view only (Summary)
+            // Kunci input agar tidak bisa diedit di mode Summary
             row.querySelectorAll("input, textarea, select").forEach(el => {
                 el.disabled = true;
                 el.style.backgroundColor = "transparent";
@@ -372,12 +372,11 @@ window.loadGlobalSummary = async function() {
             });
             row.querySelector(".col-del").style.display = "none";
         });
-
         updateNomor();
 
     } catch (error) {
-        console.error("Error Summary:", error);
-        alert("Gagal memuat summary. Periksa koneksi.");
+        console.error("Gagal load Summary:", error);
+        alert("Terjadi kesalahan saat memuat data.");
     }
 };
 
