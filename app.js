@@ -404,7 +404,7 @@ window.loadMonthlySummary = async function(targetMonth) {
     tbody.innerHTML = "<tr><td colspan='13' style='text-align:center;'>Sedang merangkum data bulan ini...</td></tr>"; 
 
     try {
-        const querySnapshot = await getDocs(collection(db, "mom"));
+        const querySnapshot = await db.collection("mom").get();
         let saringanData = {};
 
         querySnapshot.forEach((doc) => {
