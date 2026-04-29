@@ -303,7 +303,6 @@ window.loadGlobalSummary = async function() {
     document.getElementById("actionButtons").style.display = "none"; 
     document.getElementById("judul").innerText = `GLOBAL SUMMARY - ALL TIME (Latest Update)`;
 
-    // Sembunyikan kolom delete di mode summary
     document.getElementById("colDelete").style.display = "none";
 
     let tbody = document.querySelector("#momTable tbody");
@@ -317,13 +316,9 @@ window.loadGlobalSummary = async function() {
             let data = doc.data();
             if (!data.matters) return;
 
-            // --- PERBAIKAN ANTI-DOBEL DI SINI ---
-            // Menghapus semua spasi, enter, dan simbol. Jadi "PAMA Baya" dan "pamabaya " dianggap SAMA.
-            // Menggabungkan Matters dan Problem sebagai kunci unik.
             let cleanMatters = (data.matters || "").toLowerCase().replace(/[^a-z0-9]/g, '');
             let cleanProblem = (data.problem || "").toLowerCase().replace(/[^a-z0-9]/g, '');
             let kunci = cleanMatters + "_" + cleanProblem;
-            // ------------------------------------
 
             let waktuDataBaru = data.timestamp ? new Date(data.timestamp).getTime() : 0;
 
@@ -338,8 +333,6 @@ window.loadGlobalSummary = async function() {
         });
 
         let dataTerbaru = Object.values(saringanData);
-
-        // Urutkan biar yang paling baru ada di atas
         dataTerbaru.sort((a, b) => {
             let timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
             let timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
@@ -361,36 +354,34 @@ window.loadGlobalSummary = async function() {
 
             setStatus(row.querySelector(".col-status select"));
 
-            // Buat Read-Only agar tidak sengaja terubah di mode Summary
             row.querySelectorAll("input, textarea, select").forEach(el => {
                 el.disabled = true;
                 el.style.backgroundColor = "transparent";
             });
             row.querySelector(".col-del").style.display = "none";
         });
-
         updateNomor();
 
     } catch (error) {
         console.error("Error mengambil data Global Summary: ", error);
         alert("Gagal memuat data. Periksa koneksi Database.");
     }
-// ================= FITUR EXPORT KE PDF (CUKUP DITAMBAHKAN DI PALING BAWAH) ==================
+}; // <--- KURUNG PENUTUP DISINI
+
+// ================= FITUR EXPORT KE PDF ==================
 window.exportKePDF = function() {
     if (typeof window.jspdf === 'undefined') {
         alert("Library PDF belum dimuat. Pastikan koneksi internet lancar.");
         return;
     }
-    
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4'); // 'l' = Landscape supaya muat banyak kolom
 
-    // 1. Ambil Judul dari Header
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4');
+
     let judulText = document.getElementById("judul").innerText;
     doc.setFontSize(16);
     doc.text(judulText, 14, 15);
 
-    // 2. Ambil Header Tabel (Kecuali kolom aksi/delete)
     let headers = [];
     document.querySelectorAll("#momTable thead th").forEach(th => {
         if (th.id !== "colDelete" && th.style.display !== "none") {
@@ -398,42 +389,33 @@ window.exportKePDF = function() {
         }
     });
 
-    // 3. Ambil Data dari Tabel
     let rows = [];
     document.querySelectorAll("#momTable tbody tr").forEach(tr => {
-        if (tr.style.display === "none") return; // Jangan ambil baris yang difilter/disembunyikan
-        
+        if (tr.style.display === "none") return;
         let rowData = [];
         tr.querySelectorAll("td").forEach(td => {
-            // Lewati kolom delete atau yang disembunyikan
             if(td.classList.contains("col-del") || td.style.display === "none") return;
-            
             let val = "";
             let input = td.querySelector("input, textarea, select");
-            if (input) { 
-                val = input.value; 
-            } else { 
-                val = td.innerText; 
-            }
+            if (input) { val = input.value; } else { val = td.innerText; }
             rowData.push(val);
         });
         if (rowData.length > 0) rows.push(rowData);
     });
 
-    // 4. Proses cetak tabel ke PDF
     doc.autoTable({
         head: [headers],
         body: rows,
         startY: 25,
         theme: 'grid',
         styles: { fontSize: 7, cellPadding: 2 },
-        headStyles: { fillColor: [44, 62, 80], textColor: 255, halign: 'center' },
-        columnStyles: { 0: { cellWidth: 10 } } // Kolom nomor diperkecil
+        headStyles: { fillColor: [44, 62, 80], textColor: 255, halign: 'center' }
     });
 
-    // 5. Download file
     let namaFile = isSummaryMode ? "MOM_Global_Summary.pdf" : `MOM_Harian_${day}.pdf`;
     doc.save(namaFile);
+};
+
 }
 
 }
