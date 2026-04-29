@@ -306,43 +306,44 @@ function kembaliHari() { document.getElementById("momContainer").style.display="
 function kembaliMinggu() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; triggerFade("weekMenu"); }
 
 // ================= GLOBAL SUMMARY: VERSI FINAL ANTI-DUPLIKAT ==================
+
 window.loadGlobalSummary = async function() {
+
     isSummaryMode = true;
+
     resetDisplay();
+
     document.getElementById("momContainer").style.display = "block";
+
     document.getElementById("actionButtons").style.display = "none"; 
+
     document.getElementById("judul").innerText = `GLOBAL SUMMARY - ALL TIME (Latest Update)`;
+
     document.getElementById("colDelete").style.display = "none";
 
+
+
     let tbody = document.querySelector("#momTable tbody");
-    tbody.innerHTML = "<tr><td colspan='13'>Memuat data...</td></tr>"; 
+
+    tbody.innerHTML = ""; 
+
+
 
     try {
-        // --- BAGIAN YANG DIGANTI ---
-        // Kita gunakan 'get' dan 'ref' karena kamu pakai Realtime Database
-        const snapshot = await get(ref(db, "MOM")); 
-        
-        if (snapshot.exists()) {
-            tbody.innerHTML = ""; // Bersihkan tulisan memuat
-            const allData = snapshot.val();
-            
-            // Karena Realtime Database strukturnya folder, 
-            // kita harus ambil data di dalam folder tahun/bulan/minggu/hari
-            // atau sesuaikan dengan cara kamu menyimpan datanya.
-            
-            console.log("Data berhasil ditarik:", allData);
-            
-            // Masukkan logika looping data kamu di sini...
-        } else {
-            tbody.innerHTML = "<tr><td colspan='13'>Data kosong di Database.</td></tr>";
-        }
-        // ---------------------------
-    } catch (error) {
-        console.error("Gagal Monthly Summary:", error);
-        tbody.innerHTML = "<tr><td colspan='13' style='color:red;'>Gagal memuat data.</td></tr>";
-    }
-};
-            // --- LOGIKA PENGUNCI (SANGAT KETAT) ---
+
+        // Ambil semua data dari Firebase
+
+        const querySnapshot = await db.collection("mom").get();
+
+        let saringanData = {};
+
+
+
+        querySnapshot.forEach((doc) => {
+
+            let data = doc.data();
+
+            if (!data.matters) return;            // --- LOGIKA PENGUNCI (SANGAT KETAT) ---
             // Kita hapus spasi di awal/akhir, jadikan huruf kecil, dan hapus karakter aneh.
             // tujuannya supaya "PAMA Baya" dan "pamabaya " dianggap SAMA.
             let cleanMatters = (data.matters || "").toLowerCase().trim().replace(/[^a-z0-9]/g, '');
