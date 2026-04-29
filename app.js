@@ -1,6 +1,3 @@
-// Baris paling atas app.js
-import { db } from './firebase-module.js'; 
-import { ref, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 // ================= VARIABEL GLOBAL =================
 let tahun = "2026";
 let month = "";
