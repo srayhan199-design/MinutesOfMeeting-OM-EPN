@@ -272,12 +272,22 @@ function tambahSub(btn) { let parentTr = btn.closest('tr'); tambah(true, parentT
 
 // ================= NAVIGASI MENU =================
 function pilihBulan(b, e) { 
-    isSummaryMode = false; month = b; resetDisplay(); 
+    isSummaryMode = false; 
+    month = b; 
+    resetDisplay(); 
+    
+    // Tampilkan Menu Minggu
     document.getElementById("weekMenu").style.display = "block"; 
     triggerFade("weekMenu"); 
+    
+    // Tandai tombol bulan yang aktif
     document.querySelectorAll(".toolbar button").forEach(btn => btn.classList.remove("active-month")); 
     e.classList.add("active-month"); 
+
+    // --- TAMBAHAN: Otomatis panggil summary bulanan saat bulan diklik ---
+    window.loadMonthlySummary(b); 
 }
+
 function pilihMinggu(w) { week = w; document.getElementById("weekMenu").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
 
 function pilihHari(h) { 
