@@ -295,6 +295,12 @@ window.save = async function() {
         let rowData = [];
         r.querySelectorAll("input,textarea,select,span").forEach(el => rowData.push(el.value || el.innerText || ""));
 
+        // --- TAMBAHAN KODE PENGIKAT SUB-ROW ---
+        if (r.classList.contains("sub-row")) {
+            rowData[0] = "-";
+        }
+        // --------------------------------------
+
         let matters = rowData[2] ? rowData[2].trim() : "";
         let problem = rowData[3] ? rowData[3].trim() : "";
 
