@@ -214,9 +214,6 @@ window.loadMonthlySummary = async function(targetMonth) {
     document.getElementById("actionButtons").style.display = "none"; 
     document.getElementById("judul").innerText = `SUMMARY BULAN ${targetMonth.toUpperCase()} ${window.tahun || "2026"}`;
     document.getElementById("colDelete").style.display = "none";
-    
-    // --- TAMBAHAN: Munculkan Kotak Filter ---
-    document.getElementById("statContainer").style.display = "flex";
 
     let tbody = document.querySelector("#momTable tbody");
     tbody.innerHTML = "<tr><td colspan='13' style='color:blue; padding:20px; text-align:center;'>Sedang merangkum data dari database...</td></tr>";
@@ -226,9 +223,6 @@ window.loadMonthlySummary = async function(targetMonth) {
         const snapshot = await get(ref(db, `MOM/${tahunAktif}/${targetMonth}`));
 
         let saringanData = {};
-        
-        // --- TAMBAHAN: Siapkan variabel penghitung ---
-        let cOpen = 0, cProcess = 0, cClose = 0;
 
         if (snapshot.exists()) {
             const dataBulanIni = snapshot.val(); 
@@ -256,19 +250,10 @@ window.loadMonthlySummary = async function(targetMonth) {
 
             if (dataTerbaru.length === 0) {
                 tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Tidak ada pekerjaan di bulan ini.</td></tr>";
-                document.getElementById("countOpen").innerText = 0;
-                document.getElementById("countProcess").innerText = 0;
-                document.getElementById("countClose").innerText = 0;
                 return;
             }
 
             dataTerbaru.forEach(d => {
-                // --- TAMBAHAN: Hitung Status Pekerjaan ---
-                let statusVal = d[10] ? d[10].toLowerCase() : "";
-                if (statusVal === "open") cOpen++;
-                else if (statusVal === "process") cProcess++;
-                else if (statusVal === "close") cClose++;
-
                 let isSub = (d[0] === "-");
                 let row = tambah(isSub); 
                 let elements = row.querySelectorAll("input,textarea,select,span");
@@ -294,18 +279,155 @@ window.loadMonthlySummary = async function(targetMonth) {
 
             if (typeof updateNomor === "function") updateNomor();
 
-            // --- TAMBAHAN: Cetak Angka ke Kotak Filter ---
-            document.getElementById("countOpen").innerText = cOpen;
-            document.getElementById("countProcess").innerText = cProcess;
-            document.getElementById("countClose").innerText = cClose;
-
         } else {
             tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Belum ada data tersimpan untuk bulan ini.</td></tr>";
-            document.getElementById("countOpen").innerText = 0;
-            document.getElementById("countProcess").innerText = 0;
-            document.getElementById("countClose").innerText = 0;
         }
     } catch (error) {
         tbody.innerHTML = `<tr><td colspan='13' style='color:red; text-align:center; padding:20px;'>Error Asli: <b>${error.message}</b></td></tr>`;
     }
 };
+
+window.save = async function() {
+    if(window.isSummaryMode) return;
+    let data = [];
+
+    document.querySelectorAll("#momTable tbody tr").forEach(r => {
+        let rowData = [];
+        r.querySelectorAll("input,textarea,select,span").forEach(el => rowData.push(el.value || el.innerText || ""));
+
+        // --- TAMBAHAN KODE PENGIKAT SUB-ROW ---
+        if (r.classList.contains("sub-row")) {
+            rowData[0] = "-";
+        }
+        // --------------------------------------
+
+        let matters = rowData[2] ? rowData[2].trim() : "";
+        let problem = rowData[3] ? rowData[3].trim() : "";
+
+        if (matters !== "" || problem !== "") {
+            data.push(rowData);
+        }
+    });
+
+    if (data.length === 0) {
+        data = null;
+    }
+
+    try { 
+        await set(ref(db, `MOM/${window.tahun}/${window.month}/${window.week}/${window.day}`), data); 
+
+        if (data === null) {
+            alert(`Semua data di hari ${window.day} berhasil dikosongkan dari Cloud!`);
+        } else {
+            alert(`Data Berhasil disimpan di folder ${window.tahun}! (Baris kosong otomatis diabaikan)`);
+        }
+
+        loadHariIni();
+
+    } catch (error) { alert("Gagal menyimpan data MOM."); console.error(error); }
+};
+
+window.loadKegiatan = function() {
+    window.isSummaryMode = false; resetDisplay();
+    document.getElementById("kegiatanContainer").style.display = "block";
+    document.getElementById("formUploadFoto").style.display = "none";
+    document.getElementById("btnToggleUpload").style.display = "inline-block";
+    triggerFade("kegiatanContainer"); fetchFoto('Semua');
+}
+
+window.uploadFoto = function() {
+    const files = document.getElementById("fotoInput").files;
+    const kategori = document.getElementById("kategoriFoto").value; 
+    const komentar = document.getElementById("fotoKomentar").value; 
+    if (files.length === 0) { alert("Pilih foto terlebih dahulu!"); return; }
+
+    const btnUpload = document.querySelector("#formUploadFoto button.add-btn");
+    const btnOriginalText = btnUpload.innerText;
+    btnUpload.innerText = "⏳ Sedang Mengupload..."; btnUpload.disabled = true;
+
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image(); img.src = e.target.result;
+            img.onload = async function() {
+                const canvas = document.createElement("canvas");
+                const MAX_WIDTH = 1000; const scaleSize = MAX_WIDTH / img.width;
+                canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
+                const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const base64String = canvas.toDataURL("image/jpeg", 0.75);
+
+                try {
+                    const fotoRef = ref(db, `Kegiatan/${kategori}`);
+                    await push(fotoRef, { image: base64String, comment: komentar });
+                    toggleUploadForm(); fetchFoto('Semua'); 
+                } catch (err) { alert("Gagal upload foto ke server. Coba lagi."); console.error(err);
+                } finally { btnUpload.innerText = btnOriginalText; btnUpload.disabled = false; }
+            }
+        }
+        reader.readAsDataURL(file);
+    });
+}
+
+window.fetchFoto = async function(filterKategori = 'Semua') {
+    const tombolFilters = document.querySelectorAll('#filterKegiatanContainer .stat-box');
+    tombolFilters.forEach(btn => {
+        btn.style.opacity = "0.5"; btn.style.transform = "scale(0.95)"; btn.style.boxShadow = "none";
+        if (btn.innerText.includes(filterKategori) || (filterKategori === 'Semua' && btn.innerText.includes('Semua'))) {
+            btn.style.opacity = "1"; btn.style.transform = "scale(1.05)"; btn.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+        }
+    });
+
+    const gallery = document.getElementById("galleryContainer");
+    gallery.innerHTML = "<p>Memuat foto kegiatan...</p>";
+
+    try {
+        const snap = await get(ref(db, `Kegiatan`));
+        gallery.innerHTML = ""; let hasPhoto = false;
+
+        if (snap.exists()) {
+            const data = snap.val();
+            const listKategori = ["Lapangan", "Meeting", "Bebas"]; 
+
+            listKategori.forEach(kat => {
+                if (filterKategori !== 'Semua' && filterKategori !== kat) return;
+
+                if (data[kat]) {
+                    let keys = Object.keys(data[kat]).reverse(); 
+
+                    keys.forEach(key => {
+                        if(kat === 'Gallery') return; 
+                        hasPhoto = true;
+                        let imgData = data[kat][key];
+                        let imgSrc = ""; let imgComment = "";
+
+                        if (typeof imgData === 'string') { imgSrc = imgData; } 
+                        else { imgSrc = imgData.image; imgComment = imgData.comment || ""; }
+
+                        let safeComment = imgComment.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '<br>');
+
+                        const card = document.createElement("div"); card.className = "photo-card";
+
+                        card.innerHTML = `
+                            <div class="photo-img-wrapper">
+                                <img src="${imgSrc}" alt="Kegiatan ${kat}" loading="lazy" onclick="bukaLightbox(this.src, '${safeComment}')" title="Klik untuk perbesar">
+                                <span class="photo-category-badge">${kat}</span>
+                                <button class="del-photo-btn" onclick="hapusFoto('${kat}', '${key}')" title="Hapus Foto">✖</button>
+                            </div>
+                            ${imgComment ? `<div class="photo-comment">${imgComment.replace(/\n/g, '<br>')}</div>` : ''}
+                        `;
+                        gallery.appendChild(card);
+                    });
+                }
+            });
+        } 
+        if (!hasPhoto) { gallery.innerHTML = `<p style='color:#64748b; font-style:italic; padding: 20px;'>Belum ada foto dokumentasi untuk kategori: <b>${filterKategori}</b>.</p>`; }
+    } catch (err) { gallery.innerHTML = "<p style='color:red;'>Gagal memuat foto dari server.</p>"; console.error(err); }
+}
+
+window.hapusFoto = async function(kategori, key) {
+    event.stopPropagation();
+    if (confirm(`Apakah kamu yakin ingin menghapus foto ${kategori} ini secara permanen?`)) {
+        try { await remove(ref(db, `Kegiatan/${kategori}/${key}`)); fetchFoto('Semua'); 
+        } catch(err) { alert("Gagal menghapus foto dari server."); console.error(err); }
+    }
+}
