@@ -270,88 +270,71 @@ function kembaliMinggu() { document.getElementById("dayMenu").style.display="non
 
 
 
-// ================= FITUR EXPORT KE PDF (FULL CODE) ==================
+// ================= FITUR EXPORT KE PDF (VERSI TERBARU & GARIS TEGAS) ==================
 window.exportKePDF = function() {
-    // 1. Cek apakah library jsPDF tersedia
     const jspdfLib = window.jspdf;
     if (!jspdfLib) {
-        alert("Library PDF gagal dimuat! Pastikan koneksi internet lancar dan script CDN sudah terpasang di HTML.");
+        alert("Library PDF gagal dimuat! Pastikan koneksi internet lancar.");
         return;
     }
 
     const { jsPDF } = jspdfLib;
-    // 'l' = Landscape (tidur) agar tabel yang kolomnya banyak tidak sempit
+    // 'l' = Landscape (tidur)
     const doc = new jsPDF('l', 'mm', 'a4');
 
-    // 2. Tambahkan Judul di PDF
     let judulText = document.getElementById("judul").innerText;
     doc.setFontSize(16);
     doc.text(judulText, 14, 15);
 
-    // 3. Ambil Header Tabel (Kecuali kolom Delete)
     let headers = [];
     document.querySelectorAll("#momTable thead th").forEach(th => {
-        // Jangan masukkan kolom Delete dan kolom yang sedang disembunyikan
         if (th.id !== "colDelete" && th.style.display !== "none") {
             headers.push(th.innerText);
         }
     });
 
-    // 4. Ambil Data dari Baris Tabel
     let rows = [];
     document.querySelectorAll("#momTable tbody tr").forEach(tr => {
-        // Abaikan baris yang sedang difilter (disembunyikan)
         if (tr.style.display === "none") return;
-        
+
         let rowData = [];
         tr.querySelectorAll("td").forEach(td => {
-            // Jangan ambil data dari kolom delete atau yang hidden
             if(td.classList.contains("col-del") || td.style.display === "none") return;
             
             let val = "";
             let input = td.querySelector("input, textarea, select");
-            
-            // Ambil value dari input/textarea, jika tidak ada ambil teks di dalamnya
-            if (input) { 
-                val = input.value; 
-            } else { 
-                val = td.innerText; 
-            }
+            if (input) { val = input.value; } else { val = td.innerText; }
             rowData.push(val);
         });
-        
-        // Hanya masukkan baris yang ada isinya
+
         if (rowData.length > 0) rows.push(rowData);
     });
 
-    // 5. Generate Tabel menggunakan AutoTable
     doc.autoTable({
         head: [headers],
         body: rows,
         startY: 25,
-        theme: 'grid', // Garis tabel kotak-kotak rapi
+        theme: 'grid', 
         styles: { 
             fontSize: 7, 
             cellPadding: 2,
-            valign: 'middle' // Teks di tengah secara vertikal
+            valign: 'middle',
+            lineWidth: 0.3,         // MODIFIKASI: Garis lebih tebal
+            lineColor: [0, 0, 0]    // MODIFIKASI: Warna garis Hitam Pekat
         },
         headStyles: { 
-            fillColor: [44, 62, 80], // Warna header biru tua/abu
+            fillColor: [44, 62, 80], 
             textColor: 255, 
-            halign: 'center' 
+            halign: 'center',
+            lineWidth: 0.3,         // Header juga pakai garis tebal
+            lineColor: [0, 0, 0]    // Header garis hitam
         },
         columnStyles: { 
-            0: { cellWidth: 10 }, // Kolom No dipersempit
-            1: { cellWidth: 20 }  // Kolom Hari dipersempit
-        },
-        didParseCell: function(data) {
-            // Opsional: Bisa tambah logika pewarnaan sel di sini jika butuh
+            0: { cellWidth: 10 }, 
+            1: { cellWidth: 26 }    // MODIFIKASI: Kolom diperlebar biar "HARI/MINGGU" tidak kepotong
         }
     });
 
-    // 6. Penamaan File Otomatis
-    let namaFile = isSummaryMode ? "MOM_Monthly_Summary.pdf" : `MOM_Harian_${day}.pdf`;
-
-    // 7. Download File
+    let namaFile = window.isSummaryMode ? "MOM_Monthly_Summary.pdf" : `MOM_Harian_${window.day || ''}.pdf`;
     doc.save(namaFile);
 };
