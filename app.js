@@ -270,7 +270,7 @@ function kembaliMinggu() { document.getElementById("dayMenu").style.display="non
 
 
 
-// ================= FITUR EXPORT KE PDF (VERSI TERBARU & GARIS TEGAS) ==================
+// ================= FITUR EXPORT KE PDF (TEKS BOLD & GARIS TEGAS) ==================
 window.exportKePDF = function() {
     const jspdfLib = window.jspdf;
     if (!jspdfLib) {
@@ -284,6 +284,7 @@ window.exportKePDF = function() {
 
     let judulText = document.getElementById("judul").innerText;
     doc.setFontSize(16);
+    doc.setFont("helvetica", "bold"); // Bikin judul PDF jadi Bold
     doc.text(judulText, 14, 15);
 
     let headers = [];
@@ -319,19 +320,21 @@ window.exportKePDF = function() {
             fontSize: 7, 
             cellPadding: 2,
             valign: 'middle',
-            lineWidth: 0.3,         // MODIFIKASI: Garis lebih tebal
-            lineColor: [0, 0, 0]    // MODIFIKASI: Warna garis Hitam Pekat
+            fontStyle: 'bold',      // MODIFIKASI: Bikin semua teks di isi tabel jadi BOLD
+            lineWidth: 0.3,         
+            lineColor: [0, 0, 0]    
         },
         headStyles: { 
             fillColor: [44, 62, 80], 
             textColor: 255, 
             halign: 'center',
-            lineWidth: 0.3,         // Header juga pakai garis tebal
-            lineColor: [0, 0, 0]    // Header garis hitam
+            fontStyle: 'bold',      // Header juga Bold
+            lineWidth: 0.3,         
+            lineColor: [0, 0, 0]    
         },
         columnStyles: { 
             0: { cellWidth: 10 }, 
-            1: { cellWidth: 26 }    // MODIFIKASI: Kolom diperlebar biar "HARI/MINGGU" tidak kepotong
+            1: { cellWidth: 26 }    
         }
     });
 
