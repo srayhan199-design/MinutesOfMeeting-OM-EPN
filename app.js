@@ -341,86 +341,89 @@ window.exportKePDF = function() {
     let namaFile = window.isSummaryMode ? "MOM_Monthly_Summary.pdf" : `MOM_Harian_${window.day || ''}.pdf`;
     doc.save(namaFile);
 };
-// ================= FITUR EXPORT KE EXCEL (DIJAMIN DATA MUNCUL & RAPI) ==================
+// ================= FITUR EXPORT KE EXCEL (FULL WARNA & GARIS TABEL) ==================
 window.exportKeExcel = function() {
-    if (typeof XLSX === 'undefined') {
-        alert("Library Excel gagal dimuat! Pastikan koneksi internet lancar.");
-        return;
+    // 1. Ambil tabel asli dari HTML
+    let table = document.getElementById("momTable");
+    let clone = table.cloneNode(true); // Foto (kloning) tabelnya
+    let oriRows = table.querySelectorAll("tr");
+    let cloneRows = clone.querySelectorAll("tr");
+
+    // 2. Bersihkan dan warnai tabel kloningan
+    for (let i = 0; i < oriRows.length; i++) {
+        let oriTr = oriRows[i];
+        let cloneTr = cloneRows[i];
+
+        // Jika barisnya disembunyikan (filter), buang dari Excel
+        if (oriTr.style.display === "none") {
+            cloneTr.parentNode.removeChild(cloneTr);
+            continue;
+        }
+
+        let oriCells = oriTr.querySelectorAll("th, td");
+        let cloneCells = cloneTr.querySelectorAll("th, td");
+
+        for (let j = 0; j < oriCells.length; j++) {
+            let oriCell = oriCells[j];
+            let cloneCell = cloneCells[j];
+
+            // Hapus kolom Aksi/Delete
+            if (oriCell.id === "colDelete" || oriCell.classList.contains("col-del") || oriCell.style.display === "none") {
+                cloneCell.parentNode.removeChild(cloneCell);
+                continue;
+            }
+
+            // Ambil teks dari ketikan input/select
+            let input = oriCell.querySelector("input, textarea, select");
+            if (input) {
+                if (input.tagName === "SELECT") {
+                    let teksStatus = input.options[input.selectedIndex] ? input.options[input.selectedIndex].text : "";
+                    cloneCell.innerText = teksStatus;
+                    
+                    // KASIH WARNA UNTUK STATUS DI EXCEL
+                    if(teksStatus.toLowerCase() === "open") cloneCell.style.backgroundColor = "#e74c3c"; // Merah
+                    if(teksStatus.toLowerCase() === "process") cloneCell.style.backgroundColor = "#f1c40f"; // Kuning
+                    if(teksStatus.toLowerCase() === "close") cloneCell.style.backgroundColor = "#2ecc71"; // Hijau
+                    
+                    cloneCell.style.color = (teksStatus.toLowerCase() === "process") ? "#000" : "#fff"; // Warna teks
+                } else {
+                    cloneCell.innerText = input.value;
+                }
+            } else if (oriCell.querySelector("span")) {
+                cloneCell.innerText = oriCell.querySelector("span").innerText;
+            }
+
+            // TAMBAHKAN GARIS KOTAK TEGAS UNTUK SEMUA SEL
+            cloneCell.style.border = "1px solid #000000";
+            cloneCell.style.padding = "5px";
+            cloneCell.style.verticalAlign = "top";
+        }
     }
 
-    let dataExcel = [];
-    
-    // 1. Ambil Header (Judul Kolom)
-    let headers = [];
-    document.querySelectorAll("#momTable thead th").forEach(th => {
-        if (th.id !== "colDelete" && th.style.display !== "none") {
-            headers.push(th.innerText.trim());
-        }
-    });
-    dataExcel.push(headers);
+    // 3. Bungkus jadi format file Excel (XLS) yang mendukung CSS Warna
+    let htmlTemplate = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+        <meta charset="utf-8">
+        <style>
+            table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+            th { background-color: #2c3e50; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #000000; padding: 8px;}
+            td { border: 1px solid #000000; vertical-align: top; }
+        </style>
+    </head>
+    <body>
+        <h2 style="text-align: center; color: #2c3e50;">${document.getElementById("judul").innerText}</h2>
+        ${clone.outerHTML}
+    </body>
+    </html>`;
 
-    // 2. Ambil Data dari Baris (Bongkar isi Input/Textarea/Select)
-    document.querySelectorAll("#momTable tbody tr").forEach(tr => {
-        if (tr.style.display === "none") return;
-
-        let rowData = [];
-        tr.querySelectorAll("td").forEach(td => {
-            // Lewati kolom Aksi/Delete
-            if(td.classList.contains("col-del") || td.id === "colDelete" || td.style.display === "none") return;
-            
-            let val = "";
-            let select = td.querySelector("select");
-            let inputArea = td.querySelector("input, textarea");
-            let span = td.querySelector("span");
-
-            // Cek elemen apa yang ada di dalam sel tersebut
-            if (select) {
-                // Jika dropdown, ambil teks yang sedang dipilih
-                val = select.options[select.selectedIndex]?.text || select.value;
-            } else if (inputArea) {
-                // Jika kotak ketikan, ambil valuenya
-                val = inputArea.value;
-            } else if (span) {
-                // Jika teks biasa (seperti nomor & aging)
-                val = span.innerText;
-            } else {
-                val = td.innerText;
-            }
-            
-            rowData.push(val ? val.trim() : "");
-        });
-
-        if (rowData.length > 0) {
-            dataExcel.push(rowData);
-        }
-    });
-
-    // 3. Konversi Data yang sudah dibongkar ke format Sheet Excel
-    let ws = XLSX.utils.aoa_to_sheet(dataExcel);
-
-    // 4. ATUR LEBAR KOLOM (Biar otomatis luas & tidak kepotong)
-    ws['!cols'] = [
-        { wch: 6 },  // No
-        { wch: 15 }, // Hari/Minggu
-        { wch: 50 }, // Matters (Sangat Lebar)
-        { wch: 50 }, // Problem (Sangat Lebar)
-        { wch: 15 }, // Tanggal
-        { wch: 15 }, // PIC
-        { wch: 10 }, // EPC
-        { wch: 15 }, // Due Date
-        { wch: 15 }, // Selesai
-        { wch: 10 }, // Aging
-        { wch: 15 }, // Status
-        { wch: 35 }, // Remarks
-    ];
-
-    let wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data MOM");
-
-    // 5. Download File
-    let namaFile = window.isSummaryMode ? 
-        `MOM_Summary_${window.month || 'Bulan'}.xlsx` : 
-        `MOM_Harian_${window.day || ''}.xlsx`;
-    
-    XLSX.writeFile(wb, namaFile);
+    // 4. Download Filenya
+    let blob = new Blob([htmlTemplate], { type: 'application/vnd.ms-excel' });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = window.isSummaryMode ? "MOM_Summary_Lengkap.xls" : "MOM_Harian_Lengkap.xls";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 };
