@@ -341,3 +341,48 @@ window.exportKePDF = function() {
     let namaFile = window.isSummaryMode ? "MOM_Monthly_Summary.pdf" : `MOM_Harian_${window.day || ''}.pdf`;
     doc.save(namaFile);
 };
+
+// ================= FITUR EXPORT KE EXCEL ==================
+window.exportKeExcel = function() {
+    if (typeof XLSX === 'undefined') {
+        alert("Library Excel gagal dimuat! Pastikan koneksi internet lancar dan script CDN sudah ada di HTML.");
+        return;
+    }
+
+    let headers = [];
+    document.querySelectorAll("#momTable thead th").forEach(th => {
+        // Abaikan kolom Delete
+        if (th.id !== "colDelete" && th.style.display !== "none") {
+            headers.push(th.innerText);
+        }
+    });
+
+    let dataExcel = [];
+    dataExcel.push(headers); // Baris pertama untuk judul kolom
+
+    document.querySelectorAll("#momTable tbody tr").forEach(tr => {
+        if (tr.style.display === "none") return;
+
+        let rowData = [];
+        tr.querySelectorAll("td").forEach(td => {
+            if(td.classList.contains("col-del") || td.style.display === "none") return;
+            
+            let val = "";
+            let input = td.querySelector("input, textarea, select");
+            if (input) { val = input.value; } else { val = td.innerText; }
+            rowData.push(val);
+        });
+
+        if (rowData.length > 0) dataExcel.push(rowData);
+    });
+
+    // Proses konversi data ke format Excel
+    let ws = XLSX.utils.aoa_to_sheet(dataExcel);
+    let wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data MOM");
+
+    let namaFile = window.isSummaryMode ? "MOM_Monthly_Summary.xlsx" : `MOM_Harian_${window.day || ''}.xlsx`;
+    
+    // Download file Excel
+    XLSX.writeFile(wb, namaFile);
+};
