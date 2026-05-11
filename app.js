@@ -341,61 +341,72 @@ window.exportKePDF = function() {
     let namaFile = window.isSummaryMode ? "MOM_Monthly_Summary.pdf" : `MOM_Harian_${window.day || ''}.pdf`;
     doc.save(namaFile);
 };
-// ================= FITUR EXPORT KE EXCEL (SOLUSI DATA KOSONG) ==================
+// ================= FITUR EXPORT KE EXCEL (DIJAMIN DATA MUNCUL & RAPI) ==================
 window.exportKeExcel = function() {
     if (typeof XLSX === 'undefined') {
         alert("Library Excel gagal dimuat! Pastikan koneksi internet lancar.");
         return;
     }
 
-    let headers = [];
+    let dataExcel = [];
+    
     // 1. Ambil Header (Judul Kolom)
+    let headers = [];
     document.querySelectorAll("#momTable thead th").forEach(th => {
         if (th.id !== "colDelete" && th.style.display !== "none") {
-            headers.push(th.innerText);
+            headers.push(th.innerText.trim());
         }
     });
+    dataExcel.push(headers);
 
-    let dataExcel = [headers]; // Masukkan header sebagai baris pertama
-
-    // 2. Ambil Isi Tabel (Membaca langsung dari apa yang kamu ketik)
+    // 2. Ambil Data dari Baris (Bongkar isi Input/Textarea/Select)
     document.querySelectorAll("#momTable tbody tr").forEach(tr => {
         if (tr.style.display === "none") return;
 
         let rowData = [];
         tr.querySelectorAll("td").forEach(td => {
-            // Lewati kolom aksi/delete
+            // Lewati kolom Aksi/Delete
             if(td.classList.contains("col-del") || td.id === "colDelete" || td.style.display === "none") return;
             
             let val = "";
-            let input = td.querySelector("input, textarea, select");
+            let select = td.querySelector("select");
+            let inputArea = td.querySelector("input, textarea");
             let span = td.querySelector("span");
 
-            if (input) { 
-                val = input.value; // AMBIL KETIKAN KAMU
+            // Cek elemen apa yang ada di dalam sel tersebut
+            if (select) {
+                // Jika dropdown, ambil teks yang sedang dipilih
+                val = select.options[select.selectedIndex]?.text || select.value;
+            } else if (inputArea) {
+                // Jika kotak ketikan, ambil valuenya
+                val = inputArea.value;
             } else if (span) {
-                val = span.innerText; // AMBIL TEKS SPAN (No/Aging)
+                // Jika teks biasa (seperti nomor & aging)
+                val = span.innerText;
             } else {
-                val = td.innerText; // AMBIL TEKS BIASA
+                val = td.innerText;
             }
-            rowData.push(val);
+            
+            rowData.push(val ? val.trim() : "");
         });
 
-        if (rowData.length > 0) dataExcel.push(rowData);
+        if (rowData.length > 0) {
+            dataExcel.push(rowData);
+        }
     });
 
-    // 3. Konversi ke Worksheet
+    // 3. Konversi Data yang sudah dibongkar ke format Sheet Excel
     let ws = XLSX.utils.aoa_to_sheet(dataExcel);
 
-    // 4. ATUR LEBAR KOLOM (Biar rapi dan nggak sempit)
+    // 4. ATUR LEBAR KOLOM (Biar otomatis luas & tidak kepotong)
     ws['!cols'] = [
         { wch: 6 },  // No
-        { wch: 18 }, // Hari/Minggu
-        { wch: 50 }, // Matters (Dibuat lebar banget)
-        { wch: 50 }, // Problem (Dibuat lebar banget)
+        { wch: 15 }, // Hari/Minggu
+        { wch: 50 }, // Matters (Sangat Lebar)
+        { wch: 50 }, // Problem (Sangat Lebar)
         { wch: 15 }, // Tanggal
         { wch: 15 }, // PIC
-        { wch: 12 }, // EPC
+        { wch: 10 }, // EPC
         { wch: 15 }, // Due Date
         { wch: 15 }, // Selesai
         { wch: 10 }, // Aging
@@ -403,10 +414,10 @@ window.exportKeExcel = function() {
         { wch: 35 }, // Remarks
     ];
 
-    // 5. Download Process
     let wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Data MOM");
 
+    // 5. Download File
     let namaFile = window.isSummaryMode ? 
         `MOM_Summary_${window.month || 'Bulan'}.xlsx` : 
         `MOM_Harian_${window.day || ''}.xlsx`;
