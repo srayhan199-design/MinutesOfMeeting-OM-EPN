@@ -341,47 +341,75 @@ window.exportKePDF = function() {
     let namaFile = window.isSummaryMode ? "MOM_Monthly_Summary.pdf" : `MOM_Harian_${window.day || ''}.pdf`;
     doc.save(namaFile);
 };
-
-// ================= FITUR EXPORT KE EXCEL (VERSI RAPI) ==================
+// ================= FITUR EXPORT KE EXCEL (SOLUSI DATA KOSONG) ==================
 window.exportKeExcel = function() {
     if (typeof XLSX === 'undefined') {
         alert("Library Excel gagal dimuat! Pastikan koneksi internet lancar.");
         return;
     }
 
-    // 1. Ambil data dari tabel HTML
-    const table = document.getElementById("momTable");
-    
-    // 2. Buat sheet dari tabel (ini lebih bagus daripada ambil data manual)
-    // sheet ini akan mencoba mengikuti format HTML kamu
-    let ws = XLSX.utils.table_to_sheet(table, { display: true });
+    let headers = [];
+    // 1. Ambil Header (Judul Kolom)
+    document.querySelectorAll("#momTable thead th").forEach(th => {
+        if (th.id !== "colDelete" && th.style.display !== "none") {
+            headers.push(th.innerText);
+        }
+    });
 
-    // 3. ATUR LEBAR KOLOM (Sangat Penting agar tidak kepotong)
-    // wch = lebar karakter
+    let dataExcel = [headers]; // Masukkan header sebagai baris pertama
+
+    // 2. Ambil Isi Tabel (Membaca langsung dari apa yang kamu ketik)
+    document.querySelectorAll("#momTable tbody tr").forEach(tr => {
+        if (tr.style.display === "none") return;
+
+        let rowData = [];
+        tr.querySelectorAll("td").forEach(td => {
+            // Lewati kolom aksi/delete
+            if(td.classList.contains("col-del") || td.id === "colDelete" || td.style.display === "none") return;
+            
+            let val = "";
+            let input = td.querySelector("input, textarea, select");
+            let span = td.querySelector("span");
+
+            if (input) { 
+                val = input.value; // AMBIL KETIKAN KAMU
+            } else if (span) {
+                val = span.innerText; // AMBIL TEKS SPAN (No/Aging)
+            } else {
+                val = td.innerText; // AMBIL TEKS BIASA
+            }
+            rowData.push(val);
+        });
+
+        if (rowData.length > 0) dataExcel.push(rowData);
+    });
+
+    // 3. Konversi ke Worksheet
+    let ws = XLSX.utils.aoa_to_sheet(dataExcel);
+
+    // 4. ATUR LEBAR KOLOM (Biar rapi dan nggak sempit)
     ws['!cols'] = [
-        { wch: 5 },  // No
-        { wch: 15 }, // Hari/Minggu
-        { wch: 45 }, // Matters of Discussion (Dibuat lebar)
-        { wch: 45 }, // Problem (Dibuat lebar)
+        { wch: 6 },  // No
+        { wch: 18 }, // Hari/Minggu
+        { wch: 50 }, // Matters (Dibuat lebar banget)
+        { wch: 50 }, // Problem (Dibuat lebar banget)
         { wch: 15 }, // Tanggal
         { wch: 15 }, // PIC
-        { wch: 10 }, // EPC
+        { wch: 12 }, // EPC
         { wch: 15 }, // Due Date
         { wch: 15 }, // Selesai
         { wch: 10 }, // Aging
         { wch: 15 }, // Status
-        { wch: 30 }, // Remarks
+        { wch: 35 }, // Remarks
     ];
 
-    // 4. Buat Workbook dan masukkan sheet tadi
+    // 5. Download Process
     let wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Data MOM");
 
-    // 5. Penamaan File
     let namaFile = window.isSummaryMode ? 
         `MOM_Summary_${window.month || 'Bulan'}.xlsx` : 
         `MOM_Harian_${window.day || ''}.xlsx`;
     
-    // 6. Download
     XLSX.writeFile(wb, namaFile);
 };
