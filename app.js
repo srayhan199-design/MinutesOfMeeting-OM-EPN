@@ -342,47 +342,46 @@ window.exportKePDF = function() {
     doc.save(namaFile);
 };
 
-// ================= FITUR EXPORT KE EXCEL ==================
+// ================= FITUR EXPORT KE EXCEL (VERSI RAPI) ==================
 window.exportKeExcel = function() {
     if (typeof XLSX === 'undefined') {
-        alert("Library Excel gagal dimuat! Pastikan koneksi internet lancar dan script CDN sudah ada di HTML.");
+        alert("Library Excel gagal dimuat! Pastikan koneksi internet lancar.");
         return;
     }
 
-    let headers = [];
-    document.querySelectorAll("#momTable thead th").forEach(th => {
-        // Abaikan kolom Delete
-        if (th.id !== "colDelete" && th.style.display !== "none") {
-            headers.push(th.innerText);
-        }
-    });
+    // 1. Ambil data dari tabel HTML
+    const table = document.getElementById("momTable");
+    
+    // 2. Buat sheet dari tabel (ini lebih bagus daripada ambil data manual)
+    // sheet ini akan mencoba mengikuti format HTML kamu
+    let ws = XLSX.utils.table_to_sheet(table, { display: true });
 
-    let dataExcel = [];
-    dataExcel.push(headers); // Baris pertama untuk judul kolom
+    // 3. ATUR LEBAR KOLOM (Sangat Penting agar tidak kepotong)
+    // wch = lebar karakter
+    ws['!cols'] = [
+        { wch: 5 },  // No
+        { wch: 15 }, // Hari/Minggu
+        { wch: 45 }, // Matters of Discussion (Dibuat lebar)
+        { wch: 45 }, // Problem (Dibuat lebar)
+        { wch: 15 }, // Tanggal
+        { wch: 15 }, // PIC
+        { wch: 10 }, // EPC
+        { wch: 15 }, // Due Date
+        { wch: 15 }, // Selesai
+        { wch: 10 }, // Aging
+        { wch: 15 }, // Status
+        { wch: 30 }, // Remarks
+    ];
 
-    document.querySelectorAll("#momTable tbody tr").forEach(tr => {
-        if (tr.style.display === "none") return;
-
-        let rowData = [];
-        tr.querySelectorAll("td").forEach(td => {
-            if(td.classList.contains("col-del") || td.style.display === "none") return;
-            
-            let val = "";
-            let input = td.querySelector("input, textarea, select");
-            if (input) { val = input.value; } else { val = td.innerText; }
-            rowData.push(val);
-        });
-
-        if (rowData.length > 0) dataExcel.push(rowData);
-    });
-
-    // Proses konversi data ke format Excel
-    let ws = XLSX.utils.aoa_to_sheet(dataExcel);
+    // 4. Buat Workbook dan masukkan sheet tadi
     let wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Data MOM");
 
-    let namaFile = window.isSummaryMode ? "MOM_Monthly_Summary.xlsx" : `MOM_Harian_${window.day || ''}.xlsx`;
+    // 5. Penamaan File
+    let namaFile = window.isSummaryMode ? 
+        `MOM_Summary_${window.month || 'Bulan'}.xlsx` : 
+        `MOM_Harian_${window.day || ''}.xlsx`;
     
-    // Download file Excel
+    // 6. Download
     XLSX.writeFile(wb, namaFile);
 };
