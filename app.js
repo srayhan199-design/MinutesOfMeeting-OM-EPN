@@ -9,6 +9,45 @@ let currentStatusFilter = 'all';
 const urutanHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
+// ================= OTAK KALENDER SUPER PINTAR =================
+// Fungsi ini memetakan hari persis seperti baris di kalender dinding asli
+window.generateCalendar = function(tahun, bulan) {
+    let gBulan = urutanBulan.indexOf(bulan);
+    let gTahun = parseInt(tahun);
+    if (gBulan === -1 || isNaN(gTahun)) return null;
+
+    let jumlahHari = new Date(gTahun, gBulan + 1, 0).getDate();
+    let rawWeeks = {};
+    let currW = 1;
+
+    for (let d = 1; d <= jumlahHari; d++) {
+        let dayOfWeek = new Date(gTahun, gBulan, d).getDay(); // 0=Minggu, 1=Senin, dst.
+        
+        // Setiap hari Senin (kecuali tgl 1), kita turun 1 baris ke minggu berikutnya
+        if (dayOfWeek === 1 && d !== 1) {
+            currW++;
+        }
+        
+        // Hanya rekap hari kerja (1=Senin sd 5=Jumat)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+            if (!rawWeeks[currW]) rawWeeks[currW] = {};
+            let namaH = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"][dayOfWeek-1];
+            rawWeeks[currW][namaH] = d;
+        }
+    }
+
+    // Re-index agar urutan minggu selalu rapat (1, 2, 3...)
+    // Berguna kalau minggu pertama isinya cuma Sabtu/Minggu (hari libur)
+    let finalWeeks = {};
+    let idx = 1;
+    for (let wKey in rawWeeks) {
+        finalWeeks[idx] = rawWeeks[wKey];
+        idx++;
+    }
+    return finalWeeks; 
+};
+
+
 // ================= VARIABEL UNDO HAPUS =================
 let rowYangDihapus = null;
 let posisiRow = null;
@@ -245,12 +284,32 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
 
 window.tambahSub = function(btn) { let parentTr = btn.closest('tr'); window.tambah(true, parentTr); }
 
-// ================= NAVIGASI MENU =================
+// ================= NAVIGASI MENU (BACA KALENDER) =================
 window.pilihBulan = function(b, e) { 
     window.isSummaryMode = false; 
     window.month = b; 
     window.resetDisplay(); 
-    document.getElementById("weekMenu").style.display = "block"; 
+    
+    const weekMenu = document.getElementById("weekMenu");
+    weekMenu.style.display = "block"; 
+    
+    weekMenu.innerHTML = `
+        <h2 style="color:#2c3e50; margin-top:0;">Pilih Minggu</h2>
+        <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
+    `;
+
+    // --- HITUNG OTOMATIS ADA BERAPA MINGGU KERJA DI BULAN INI ---
+    let kalender = window.generateCalendar(window.tahun, window.month);
+    let maxMinggu = kalender ? Object.keys(kalender).length : 4; 
+    
+    for (let w = 1; w <= maxMinggu; w++) {
+        let btn = document.createElement("button");
+        btn.className = "weekBtn";
+        btn.innerText = "Minggu " + w;
+        btn.onclick = function() { window.pilihMinggu('Minggu ' + w); };
+        weekMenu.appendChild(btn);
+    }
+
     window.triggerFade("weekMenu"); 
     document.querySelectorAll(".toolbar button").forEach(btn => btn.classList.remove("active-month")); 
     e.classList.add("active-month"); 
@@ -261,46 +320,29 @@ window.pilihMinggu = function(w) {
     window.week = w; 
     document.getElementById("weekMenu").style.display="none"; 
     
-    // --- LOGIKA MENU HARI SUPER DINAMIS (BACA KALENDER) ---
     const dayMenu = document.getElementById("dayMenu");
-    
     dayMenu.innerHTML = `
         <button class="weekBtn" style="background:#f8d7da; color:#721c24; border-color:#f5c6cb;" onclick="window.kembaliMinggu()">⬅ Kembali ke Minggu</button>
         <h2 style="color:#2c3e50;">Pilih Hari</h2>
         <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
     `;
 
-    let gBulan = urutanBulan.indexOf(window.month);
-    let gTahun = parseInt(window.tahun);
-    let jumlahHari = new Date(gTahun, gBulan + 1, 0).getDate();
-    let angkaMinggu = parseInt(w.replace("Minggu ", ""));
-    const daftarHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
-    
-    daftarHari.forEach(hari => {
-        let targetHariIdx = daftarHari.indexOf(hari); 
-        let tanggalKetemu = [];
-        
-        for (let d = 1; d <= jumlahHari; d++) {
-            let cekTanggal = new Date(gTahun, gBulan, d);
-            let hariKe = cekTanggal.getDay(); 
-            let hariLokalIdx = hariKe - 1;
-            if (hariKe === 0) hariLokalIdx = 5; 
-            
-            if (hariLokalIdx === targetHariIdx) {
-                tanggalKetemu.push(d); 
+    // --- MUNCULKAN HARI SESUAI BARIS KALENDER ASLI ---
+    let kalender = window.generateCalendar(window.tahun, window.month);
+    let angkaMingguTarget = parseInt(w.replace("Minggu ", ""));
+    let mingguPilihan = kalender ? kalender[angkaMingguTarget] : null;
+
+    if (mingguPilihan) {
+        ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"].forEach(hari => {
+            if (mingguPilihan[hari]) { // Jika hari tersebut ada di minggu itu
+                let btn = document.createElement("button");
+                btn.className = "dayBtn";
+                btn.innerText = `${hari} (${mingguPilihan[hari]})`; 
+                btn.onclick = function() { window.pilihHari(hari); };
+                dayMenu.appendChild(btn);
             }
-        }
-        
-        // JIKA HARINYA ADA DI MINGGU INI, TAMPILKAN TOMBOLNYA
-        if (tanggalKetemu[angkaMinggu - 1]) {
-            let tglAsli = tanggalKetemu[angkaMinggu - 1];
-            let btn = document.createElement("button");
-            btn.className = "dayBtn";
-            btn.innerText = `${hari} (${tglAsli})`; 
-            btn.onclick = function() { window.pilihHari(hari); };
-            dayMenu.appendChild(btn);
-        }
-    });
+        });
+    }
 
     dayMenu.style.display="block"; 
     window.triggerFade("dayMenu"); 
@@ -323,35 +365,19 @@ window.kembaliMinggu = function() { document.getElementById("dayMenu").style.dis
 
 // ================= FUNGSI HITUNG TANGGAL OTOMATIS =================
 window.hitungTanggalOtomatis = function(tahun, bulan, minggu, hari) {
-    const daftarBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-    const daftarHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+    let kalender = window.generateCalendar(tahun, bulan);
+    if (!kalender || !minggu || !hari) return "";
 
-    let gBulan = daftarBulan.indexOf(bulan);
+    let angkaMingguTarget = parseInt(minggu.replace("Minggu ", ""));
+    let mingguPilihan = kalender[angkaMingguTarget];
+
+    if (!mingguPilihan || !mingguPilihan[hari]) return ""; // Cegah memanggil tanggal gaib
+
+    let gBulan = urutanBulan.indexOf(bulan);
     let gTahun = parseInt(tahun);
-    if (gBulan === -1 || isNaN(gTahun) || !minggu || !hari) return "";
+    let d = mingguPilihan[hari];
 
-    let angkaMinggu = parseInt(minggu.replace("Minggu ", ""));
-    let targetHariIdx = daftarHari.indexOf(hari); 
-    if (targetHariIdx === -1) return "";
-
-    let tanggalKetemu = [];
-    let jumlahHari = new Date(gTahun, gBulan + 1, 0).getDate();
-
-    for (let d = 1; d <= jumlahHari; d++) {
-        let cekTanggal = new Date(gTahun, gBulan, d);
-        let hariKe = cekTanggal.getDay(); 
-        let hariLokalIdx = hariKe - 1;
-        if (hariKe === 0) hariLokalIdx = 5; 
-
-        if (hariLokalIdx === targetHariIdx) {
-            tanggalKetemu.push(d);
-        }
-    }
-
-    let hasilTanggal = tanggalKetemu[angkaMinggu - 1];
-    if (!hasilTanggal) return ""; // KEMBALIKAN KOSONG JIKA TANGGAL TIDAK ADA DI KALENDER
-
-    let dd = String(hasilTanggal).padStart(2, '0');
+    let dd = String(d).padStart(2, '0');
     let mm = String(gBulan + 1).padStart(2, '0');
     return `${dd}/${mm}/${gTahun}`;
 };
