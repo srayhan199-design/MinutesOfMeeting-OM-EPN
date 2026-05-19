@@ -17,7 +17,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 export const auth = getAuth(app); 
 
-// ================= SISTEM LOGIN & LOGOUT =================
+// ================= SISTEM LOGIN & LOGOUT & MUNCUL POP-UP =================
 onAuthStateChanged(auth, (user) => {
     const loginScreen = document.getElementById("loginScreen");
     const toolbar = document.querySelector(".toolbar");
@@ -27,6 +27,17 @@ onAuthStateChanged(auth, (user) => {
         if(loginScreen) loginScreen.style.display = "none";
         if(toolbar) toolbar.style.display = "flex";
         if(mainApp) mainApp.style.display = "flex";
+
+        get(ref(db, 'MOM_LastUpdate')).then((snap) => {
+            let lastDate = snap.exists() ? snap.val() : "Belum ada data tersimpan";
+            let modal = document.getElementById("reminderModal");
+            let txt = document.getElementById("lastUpdateText");
+            if (modal && txt) {
+                txt.innerText = lastDate;
+                modal.style.display = "flex";
+            }
+        }).catch(err => console.error(err));
+
     } else {
         if(loginScreen) loginScreen.style.display = "flex";
         if(toolbar) toolbar.style.display = "none";
@@ -91,7 +102,7 @@ function parseGroups(rawData) {
 }
 
 const urutanBulanLokal = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-const urutanMingguLokal = ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4", "Minggu 5"]; // DITAMBAH MINGGU 5
+const urutanMingguLokal = ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4", "Minggu 5"]; 
 const urutanHariLokal = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 
 window.getHariSebelumnya = function(y, m, w, d) {
@@ -99,7 +110,7 @@ window.getHariSebelumnya = function(y, m, w, d) {
     dIdx--; 
     if (dIdx < 0) {
         dIdx = 4; wIdx--; 
-        if (wIdx < 0) { wIdx = 4; mIdx--; if (mIdx < 0) { mIdx = 11; yIdx--; } } // MINGGU KE-5 AMAN
+        if (wIdx < 0) { wIdx = 4; mIdx--; if (mIdx < 0) { mIdx = 11; yIdx--; } } 
     }
     return { y: yIdx.toString(), m: urutanBulanLokal[mIdx], w: urutanMingguLokal[wIdx], d: urutanHariLokal[dIdx] };
 }
@@ -119,11 +130,8 @@ window.loadHariIni = async function() {
                     if(!els[i]) continue;
                     let valCloud = d[i] || "";
 
-                    // 🔥 PELINDUNG TANGGAL OTOMATIS 🔥
                     if (i === 1 || i === 4) {
-                        if (valCloud === "" || valCloud === window.day) {
-                            continue; // Skip penimpaan dari Firebase
-                        }
+                        if (valCloud === "" || valCloud === window.day) continue; 
                     }
 
                     if(els[i].tagName === "SPAN") els[i].innerText = valCloud;
@@ -167,10 +175,8 @@ window.tarikDataKemarin = async function() {
                                 if(!els[i]) continue;
                                 let valCloud = d[i] || "";
 
-                                // 🔥 JANGAN TARIK TANGGAL HARI KEMARIN KE TABEL HARI INI 🔥
-                                if (i === 1 || i === 4) {
-                                    continue; 
-                                }
+                                // 🔥 BAGIAN INI SAYA HAPUS! 🔥
+                                // Sekarang, waktu ditarik dari hari kemarin, tanggal dan hari aslinya akan ikut ditarik dan mengunci tanpa peduli ditaruh di hari apa.
 
                                 if(els[i].tagName === "SPAN") els[i].innerText = valCloud;
                                 else { 
@@ -191,7 +197,6 @@ window.tarikDataKemarin = async function() {
     } catch (err) { alert("Gagal terhubung ke Cloud."); }
 };
 
-// ================= SUMMARY & FILTER =================
 window.loadMonthlySummary = async function(targetMonth) {
     window.isSummaryMode = true; 
     if (typeof window.resetDisplay === "function") window.resetDisplay(); else if (typeof resetDisplay === "function") resetDisplay();
@@ -222,7 +227,22 @@ window.loadMonthlySummary = async function(targetMonth) {
                                 let matters = d[2] || ""; let problem = d[3] || "";
                                 if (!matters) return;
                                 let kunciUnik = matters.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, '') + "_" + problem.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-                                saringanData[kunciUnik] = d; 
+                                
+                                let copyD = [...d];
+                                if (d[0] !== "-") { 
+                                    let valHari = d[1] || "";
+                                    // 🔥 HANYA UPDATE JIKA TANGGALNYA KOSONG 🔥
+                                    // Kalau datanya sudah punya kurung buka '(' alias punya tanggal, jangan ditimpa! Biarkan jadi identitas aslinya.
+                                    if (!valHari.includes("(")) {
+                                        let tglOtomatis = window.hitungTanggalOtomatis(window.tahun || "2026", targetMonth, minggu, hari);
+                                        if (tglOtomatis) {
+                                            copyD[1] = `${hari}\n(${tglOtomatis})`;
+                                            let splitTgl = tglOtomatis.split('/');
+                                            copyD[4] = `${splitTgl[2]}-${splitTgl[1]}-${splitTgl[0]}`; 
+                                        }
+                                    }
+                                }
+                                saringanData[kunciUnik] = copyD; 
                             });
                         }
                     });
@@ -275,6 +295,11 @@ window.save = async function() {
     if (data.length === 0) data = null;
     try { 
         await set(ref(db, `MOM/${window.tahun}/${window.month}/${window.week}/${window.day}`), data); 
+        
+        if (data !== null) {
+            await set(ref(db, 'MOM_LastUpdate'), `${window.day}, ${window.month} ${window.tahun}`);
+        }
+
         alert(data === null ? `Data di hari ${window.day} dikosongkan!` : `Data Berhasil disimpan!`);
         if(typeof window.loadHariIni === "function") window.loadHariIni(); else loadHariIni();
     } catch (error) { alert("Gagal menyimpan data."); }
