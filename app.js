@@ -267,6 +267,51 @@ function pilihHari(h) {
 function kembaliHari() { document.getElementById("momContainer").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
 function kembaliMinggu() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; triggerFade("weekMenu"); }
 
+// ================= FUNGSI HITUNG TANGGAL OTOMATIS =================
+window.hitungTanggalOtomatis = function(tahun, bulan, minggu, hari) {
+    const daftarBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const daftarHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+    
+    let gBulan = daftarBulan.indexOf(bulan);
+    let gTahun = parseInt(tahun);
+    if (gBulan === -1 || isNaN(gTahun)) return "";
+
+    // Ambil angka minggu (Minggu 1 -> 1)
+    let angkaMinggu = parseInt(minggu.replace("Minggu ", ""));
+    let targetHariIdx = daftarHari.indexOf(hari); // Senin = 0, Selasa = 1, dst.
+    if (targetHariIdx === -1) return "";
+
+    let tanggalKetemu = [];
+    // Cari jumlah hari dalam bulan tersebut
+    let jumlahHari = new Date(gTahun, gBulan + 1, 0).getDate();
+
+    // Loop semua hari di bulan itu untuk mencari hari yang cocok
+    for (let d = 1; d <= jumlahHari; d++) {
+        let cekTanggal = new Date(gTahun, gBulan, d);
+        let hariKe = cekTanggal.getDay(); // 0 = Minggu, 1 = Senin, ...
+        
+        // Sesuaikan index hari lokal (Senin = 0, Selasa = 1, ... Jumat = 4)
+        let hariLokalIdx = hariKe - 1;
+        if (hariKe === 0) hariLokalIdx = 5; // Jika hari minggu bawaan JS
+
+        if (hariLokalIdx === targetHariIdx) {
+            tanggalKetemu.push(d);
+        }
+    }
+
+    // Ambil tanggal sesuai urutan minggu
+    let hasilTanggal = tanggalKetemu[angkaMinggu - 1];
+    
+    // Antispasi jika minggu ke-4 meluap
+    if (!hasilTanggal) hasilTanggal = tanggalKetemu[tanggalKetemu.length - 1];
+
+    if (!hasilTanggal) return "";
+
+    // Format hasil menjadi DD/MM/YYYY
+    let dd = String(hasilTanggal).padStart(2, '0');
+    let mm = String(gBulan + 1).padStart(2, '0');
+    return `${dd}/${mm}/${gTahun}`;
+};
 
 
 
