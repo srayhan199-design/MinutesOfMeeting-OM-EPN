@@ -1,30 +1,27 @@
-// ================= VARIABEL GLOBAL (YANG BENAR) =================
+// ================= VARIABEL GLOBAL =================
 window.tahun = "2026";
 window.month = "";
 window.week = "";
 window.day = "";
 window.isSummaryMode = false;
 let currentStatusFilter = 'all'; 
-// (Sisa kode ke bawah tetap sama)
 
 const urutanHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-
-
 
 // ================= VARIABEL UNDO HAPUS =================
 let rowYangDihapus = null;
 let posisiRow = null;
 let timerUndo = null;
 
-function hapusBaris(btn) {
+window.hapusBaris = function(btn) {
     if (confirm("Apakah Anda yakin akan menghapus baris ini?")) {
         let row = btn.closest('tr');
         let tbody = row.parentNode;
         rowYangDihapus = row;
         posisiRow = row.nextSibling;
         tbody.removeChild(row);
-        updateNomor(); 
+        window.updateNomor(); 
 
         let toast = document.getElementById("undoToast");
         if(toast) {
@@ -37,11 +34,11 @@ function hapusBaris(btn) {
     }
 }
 
-function batalHapus() {
+window.batalHapus = function() {
     if (rowYangDihapus) {
         let tbody = document.querySelector("#momTable tbody");
         tbody.insertBefore(rowYangDihapus, posisiRow);
-        updateNomor(); 
+        window.updateNomor(); 
         let toast = document.getElementById("undoToast");
         if (toast) toast.classList.remove("show");
         rowYangDihapus = null;
@@ -53,21 +50,21 @@ window.hapusSemuaDataTabel = function() {
     if (confirm("🚨 PERINGATAN! Apakah Anda yakin ingin mengosongkan SEMUA baris di tabel ini?")) {
         let tbody = document.querySelector("#momTable tbody");
         tbody.innerHTML = ""; 
-        tambah(); 
-        updateNomor();
+        window.tambah(); 
+        window.updateNomor();
         alert("Semua baris telah dikosongkan. Jangan lupa klik 'Simpan ke Cloud' untuk memperbarui database.");
     }
 }
 
 // ================= UI HELPER =================
-function bukaLightbox(src, komentar) {
+window.bukaLightbox = function(src, komentar) {
     document.getElementById('lightbox').style.display = 'block';
     document.getElementById('lightboxImg').src = src;
     document.getElementById('lightboxCaption').innerHTML = komentar || '';
 }
-function tutupLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+window.tutupLightbox = function() { document.getElementById('lightbox').style.display = 'none'; }
 
-function toggleUploadForm() {
+window.toggleUploadForm = function() {
     let form = document.getElementById("formUploadFoto");
     let btnToggle = document.getElementById("btnToggleUpload");
     if (form.style.display === "none" || form.style.display === "") {
@@ -77,21 +74,22 @@ function toggleUploadForm() {
     }
 }
 
-function toggleMonthList() {
+window.toggleMonthList = function() {
     let container = document.getElementById("monthListContainer");
     container.style.display = (container.style.display === "block") ? "none" : "block";
 }
-function gantiTahun() {
-    tahun = document.getElementById("selectTahun").value;
-    document.getElementById("btnYear").innerText = tahun; home(); 
+window.gantiTahun = function() {
+    window.tahun = document.getElementById("selectTahun").value;
+    document.getElementById("btnYear").innerText = window.tahun; 
+    window.home(); 
 }
-function triggerFade(id) {
+window.triggerFade = function(id) {
     let el = document.getElementById(id);
     if(!el) return; el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
 }
-function autoHeight(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
+window.autoHeight = function(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
 
-function resetDisplay() {
+window.resetDisplay = function() {
     document.getElementById("homeText").style.display = "none";
     document.getElementById("weekMenu").style.display = "none";
     document.getElementById("dayMenu").style.display = "none";
@@ -100,23 +98,21 @@ function resetDisplay() {
     document.getElementById("kegiatanContainer").style.display = "none";
     document.getElementById("searchInput").value = "";
     currentStatusFilter = "all";
-    
-    // Tampilkan kembali kolom delete (antisipasi setelah dari mode summary)
     document.getElementById("colDelete").style.display = "table-cell";
 }
 
-function home() { 
-    isSummaryMode = false; resetDisplay();
+window.home = function() { 
+    window.isSummaryMode = false; window.resetDisplay();
     document.getElementById("homeText").style.display = "block";
     document.querySelectorAll(".toolbar button").forEach(btn => btn.classList.remove("active-month"));
-    triggerFade("homeText");
+    window.triggerFade("homeText");
 }
 
 // ================= FILTER & SEARCH =================
-function cariData() { applyFilters(); }
-function filterGlobal(status) { currentStatusFilter = status; applyFilters(); }
+window.cariData = function() { window.applyFilters(); }
+window.filterGlobal = function(status) { currentStatusFilter = status; window.applyFilters(); }
 
-function applyFilters() {
+window.applyFilters = function() {
     let keyword = document.getElementById("searchInput").value.toLowerCase();
     let trs = document.querySelectorAll("#momTable tbody tr");
 
@@ -140,16 +136,16 @@ function applyFilters() {
 
         if (matchStatus && matchSearch) { r.style.display = "table-row"; } else { r.style.display = "none"; }
     });
-    updateNomor();
+    window.updateNomor();
 }
 
 // ================= CORE TABLE LOGIC =================
-function updateNomor() {
+window.updateNomor = function() {
     let idx = 1;
     let trs = Array.from(document.querySelectorAll("#momTable tbody tr"));
     trs.forEach(r => { let colNo = r.querySelector(".col-no"); if (colNo) { colNo.style.display = "table-cell"; colNo.rowSpan = 1; } });
     let visibleTrs = trs.filter(r => r.style.display !== "none");
-    
+
     for (let i = 0; i < visibleTrs.length; i++) {
         let r = visibleTrs[i];
         let colNo = r.querySelector(".col-no");
@@ -158,7 +154,7 @@ function updateNomor() {
         if (r.classList.contains("sub-row")) {
             let prevMainIndex = i - 1;
             while(prevMainIndex >= 0 && visibleTrs[prevMainIndex].classList.contains("sub-row")) { prevMainIndex--; }
-            
+
             if (prevMainIndex >= 0) {
                 colNo.style.display = "none";
                 let parentColNo = visibleTrs[prevMainIndex].querySelector(".col-no");
@@ -172,7 +168,7 @@ function updateNomor() {
     }
 }
 
-function aging(el) {
+window.aging = function(el) {
     let row = el.closest("tr");
     let tglVal = row.cells[4].querySelector("input").value;      
     let dueVal = row.cells[7].querySelector("input").value;      
@@ -197,21 +193,34 @@ function aging(el) {
     }
 }
 
-function setStatus(s) {
-    if(!s) return; s.parentElement.className = "col-status status-" + s.value; aging(s);
+window.setStatus = function(s) {
+    if(!s) return; s.parentElement.className = "col-status status-" + s.value; window.aging(s);
 }
 
-function tambah(isSubRow = false, referenceRow = null) {
+window.tambah = function(isSubRow = false, referenceRow = null) {
     let tbody = document.querySelector("#momTable tbody");
     let row = document.createElement("tr");
     if (isSubRow) row.classList.add("sub-row");
 
+    // --- LOGIKA TANGGAL OTOMATIS DARI SISTEM ---
+    let tanggalAsli = window.hitungTanggalOtomatis(window.tahun, window.month, window.week, window.day);
+    let teksHari = window.day || ""; 
+    let valueTglKalender = "";
+
+    if (tanggalAsli && !isSubRow && !window.isSummaryMode) {
+        teksHari = `${window.day}\n(${tanggalAsli})`; 
+        let splitTgl = tanggalAsli.split('/');
+        if (splitTgl.length === 3) {
+            valueTglKalender = `${splitTgl[2]}-${splitTgl[1]}-${splitTgl[0]}`; 
+        }
+    }
+
     row.innerHTML = `
         <td class="col-no"><input class="no" readonly style="background:transparent; border:none; text-align:center; font-weight:bold; font-size:16px; width:100%;"></td>
-        <td class="col-hari"><input class="cell-hari" value="${day}" readonly style="background:transparent; border:none; text-align:center;"></td>
+        <td class="col-hari"><textarea class="cell-hari" readonly style="background:transparent; border:none; text-align:center; width:100%; resize:none; overflow:hidden;" oninput="autoHeight(this)">${teksHari}</textarea></td>
         <td class="col-matters"><textarea oninput="autoHeight(this)"></textarea></td>
         <td class="col-problem"><textarea oninput="autoHeight(this)"></textarea></td>
-        <td class="col-tanggal"><input type="date" onchange="aging(this)"></td>
+        <td class="col-tanggal"><input type="date" value="${valueTglKalender}" onchange="aging(this)"></td>
         <td class="col-pic"><input></td>
         <td class="col-epc"><input></td>
         <td class="col-due"><input type="date" onchange="aging(this)"></td>
@@ -226,96 +235,88 @@ function tambah(isSubRow = false, referenceRow = null) {
     `;
     if (referenceRow) { tbody.insertBefore(row, referenceRow.nextSibling); } 
     else { tbody.appendChild(row); }
-    updateNomor(); 
+    window.updateNomor(); 
+    
+    // Sesuaikan tinggi otomatis untuk area textarea hari
+    let ta = row.querySelector('.col-hari textarea');
+    if(ta) window.autoHeight(ta);
+    
     return row;
 }
 
-function tambahSub(btn) { let parentTr = btn.closest('tr'); tambah(true, parentTr); }
+window.tambahSub = function(btn) { let parentTr = btn.closest('tr'); window.tambah(true, parentTr); }
 
 // ================= NAVIGASI MENU =================
-function pilihBulan(b, e) { 
-    isSummaryMode = false; 
-    month = b; 
-    resetDisplay(); 
-    
-    // Tampilkan Menu Minggu
+window.pilihBulan = function(b, e) { 
+    window.isSummaryMode = false; 
+    window.month = b; 
+    window.resetDisplay(); 
     document.getElementById("weekMenu").style.display = "block"; 
-    triggerFade("weekMenu"); 
-    
-    // Tandai tombol bulan yang aktif
+    window.triggerFade("weekMenu"); 
     document.querySelectorAll(".toolbar button").forEach(btn => btn.classList.remove("active-month")); 
     e.classList.add("active-month"); 
-
-    // --- TAMBAHAN: Otomatis panggil summary bulanan saat bulan diklik ---
-    window.loadMonthlySummary(b); 
+    if(typeof window.loadMonthlySummary === "function") window.loadMonthlySummary(b); 
 }
 
-function pilihMinggu(w) { week = w; document.getElementById("weekMenu").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
+window.pilihMinggu = function(w) { 
+    window.week = w; 
+    document.getElementById("weekMenu").style.display="none"; 
+    document.getElementById("dayMenu").style.display="block"; 
+    window.triggerFade("dayMenu"); 
+}
 
-function pilihHari(h) { 
-    day = h; isSummaryMode = false; 
+window.pilihHari = function(h) { 
+    window.day = h; window.isSummaryMode = false; 
     document.getElementById("dayMenu").style.display="none"; 
     document.getElementById("momContainer").style.display="block"; 
-    triggerFade("momContainer"); 
+    window.triggerFade("momContainer"); 
     document.getElementById("actionButtons").style.display="flex"; 
     document.getElementById("colDelete").style.display="table-cell"; 
-    document.getElementById("backToDayBtn").onclick = kembaliHari; 
-    document.getElementById("judul").innerText = `MOM ${tahun} - ${month} - ${week} - ${day}`; 
+    document.getElementById("backToDayBtn").onclick = window.kembaliHari; 
+    document.getElementById("judul").innerText = `MOM ${window.tahun} - ${window.month} - ${window.week} - ${window.day}`; 
     if (typeof window.loadHariIni === 'function') window.loadHariIni(); 
 }
 
-function kembaliHari() { document.getElementById("momContainer").style.display="none"; document.getElementById("dayMenu").style.display="block"; triggerFade("dayMenu"); }
-function kembaliMinggu() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; triggerFade("weekMenu"); }
+window.kembaliHari = function() { document.getElementById("momContainer").style.display="none"; document.getElementById("dayMenu").style.display="block"; window.triggerFade("dayMenu"); }
+window.kembaliMinggu = function() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; window.triggerFade("weekMenu"); }
 
 // ================= FUNGSI HITUNG TANGGAL OTOMATIS =================
 window.hitungTanggalOtomatis = function(tahun, bulan, minggu, hari) {
     const daftarBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
     const daftarHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
-    
+
     let gBulan = daftarBulan.indexOf(bulan);
     let gTahun = parseInt(tahun);
-    if (gBulan === -1 || isNaN(gTahun)) return "";
+    if (gBulan === -1 || isNaN(gTahun) || !minggu || !hari) return "";
 
-    // Ambil angka minggu (Minggu 1 -> 1)
     let angkaMinggu = parseInt(minggu.replace("Minggu ", ""));
-    let targetHariIdx = daftarHari.indexOf(hari); // Senin = 0, Selasa = 1, dst.
+    let targetHariIdx = daftarHari.indexOf(hari); 
     if (targetHariIdx === -1) return "";
 
     let tanggalKetemu = [];
-    // Cari jumlah hari dalam bulan tersebut
     let jumlahHari = new Date(gTahun, gBulan + 1, 0).getDate();
 
-    // Loop semua hari di bulan itu untuk mencari hari yang cocok
     for (let d = 1; d <= jumlahHari; d++) {
         let cekTanggal = new Date(gTahun, gBulan, d);
-        let hariKe = cekTanggal.getDay(); // 0 = Minggu, 1 = Senin, ...
-        
-        // Sesuaikan index hari lokal (Senin = 0, Selasa = 1, ... Jumat = 4)
+        let hariKe = cekTanggal.getDay(); 
         let hariLokalIdx = hariKe - 1;
-        if (hariKe === 0) hariLokalIdx = 5; // Jika hari minggu bawaan JS
+        if (hariKe === 0) hariLokalIdx = 5; 
 
         if (hariLokalIdx === targetHariIdx) {
             tanggalKetemu.push(d);
         }
     }
 
-    // Ambil tanggal sesuai urutan minggu
     let hasilTanggal = tanggalKetemu[angkaMinggu - 1];
-    
-    // Antispasi jika minggu ke-4 meluap
     if (!hasilTanggal) hasilTanggal = tanggalKetemu[tanggalKetemu.length - 1];
-
     if (!hasilTanggal) return "";
 
-    // Format hasil menjadi DD/MM/YYYY
     let dd = String(hasilTanggal).padStart(2, '0');
     let mm = String(gBulan + 1).padStart(2, '0');
     return `${dd}/${mm}/${gTahun}`;
 };
 
-
-
-// ================= FITUR EXPORT KE PDF (TEKS BOLD + TANGGAL OTOMATIS) ==================
+// ================= FITUR EXPORT KE PDF ==================
 window.exportKePDF = function() {
     const jspdfLib = window.jspdf;
     if (!jspdfLib) {
@@ -345,7 +346,7 @@ window.exportKePDF = function() {
         let rowData = [];
         tr.querySelectorAll("td").forEach(td => {
             if(td.classList.contains("col-del") || td.style.display === "none") return;
-            
+
             let val = "";
             let input = td.querySelector("input, textarea, select");
             if (input) { val = input.value; } else { val = td.innerText; }
@@ -382,22 +383,20 @@ window.exportKePDF = function() {
         }
     });
 
-    // --- LOGIKA AMBIL TANGGAL HARI INI ---
     let hariIni = new Date();
     let dd = String(hariIni.getDate()).padStart(2, '0');
-    let mm = String(hariIni.getMonth() + 1).padStart(2, '0'); // Januari = 0
+    let mm = String(hariIni.getMonth() + 1).padStart(2, '0'); 
     let yyyy = hariIni.getFullYear();
-    let formatTanggal = dd + '-' + mm + '-' + yyyy; // Hasil: 19-05-2026
+    let formatTanggal = dd + '-' + mm + '-' + yyyy; 
 
-    // Penamaan file + Tanggal Download
     let namaFile = window.isSummaryMode ? 
         `MOM_Summary_${window.month || 'Bulan'}_(${formatTanggal}).pdf` : 
         `MOM_Harian_${window.day || ''}_(${formatTanggal}).pdf`;
-        
+
     doc.save(namaFile);
 };
 
-// ================= FITUR EXPORT KE EXCEL (WARNA + TANGGAL OTOMATIS) ==================
+// ================= FITUR EXPORT KE EXCEL ==================
 window.exportKeExcel = function() {
     let table = document.getElementById("momTable");
     let clone = table.cloneNode(true); 
@@ -430,11 +429,11 @@ window.exportKeExcel = function() {
                 if (input.tagName === "SELECT") {
                     let teksStatus = input.options[input.selectedIndex] ? input.options[input.selectedIndex].text : "";
                     cloneCell.innerText = teksStatus;
-                    
+
                     if(teksStatus.toLowerCase() === "open") cloneCell.style.backgroundColor = "#e74c3c"; 
                     if(teksStatus.toLowerCase() === "process") cloneCell.style.backgroundColor = "#f1c40f"; 
                     if(teksStatus.toLowerCase() === "close") cloneCell.style.backgroundColor = "#2ecc71"; 
-                    
+
                     cloneCell.style.color = (teksStatus.toLowerCase() === "process") ? "#000" : "#fff"; 
                 } else {
                     cloneCell.innerText = input.value;
@@ -446,6 +445,7 @@ window.exportKeExcel = function() {
             cloneCell.style.border = "1px solid #000000";
             cloneCell.style.padding = "5px";
             cloneCell.style.verticalAlign = "top";
+            cloneCell.style.whiteSpace = "pre-wrap"; 
         }
     }
 
@@ -456,7 +456,7 @@ window.exportKeExcel = function() {
         <style>
             table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
             th { background-color: #2c3e50; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #000000; padding: 8px;}
-            td { border: 1px solid #000000; vertical-align: top; }
+            td { border: 1px solid #000000; vertical-align: top; white-space: pre-wrap; }
         </style>
     </head>
     <body>
@@ -465,7 +465,6 @@ window.exportKeExcel = function() {
     </body>
     </html>`;
 
-    // --- LOGIKA AMBIL TANGGAL HARI INI ---
     let hariIni = new Date();
     let dd = String(hariIni.getDate()).padStart(2, '0');
     let mm = String(hariIni.getMonth() + 1).padStart(2, '0');
@@ -476,12 +475,11 @@ window.exportKeExcel = function() {
     let url = URL.createObjectURL(blob);
     let a = document.createElement("a");
     a.href = url;
-    
-    // Penamaan file Excel + Tanggal Download
+
     a.download = window.isSummaryMode ? 
         `MOM_Summary_${window.month || 'Bulan'}_(${formatTanggal}).xls` : 
         `MOM_Harian_${window.day || ''}_(${formatTanggal}).xls`;
-        
+
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
