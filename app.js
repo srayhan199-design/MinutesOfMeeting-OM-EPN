@@ -10,7 +10,6 @@ const urutanHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 // ================= OTAK KALENDER SUPER PINTAR =================
-// Fungsi ini memetakan hari persis seperti baris di kalender dinding asli
 window.generateCalendar = function(tahun, bulan) {
     let gBulan = urutanBulan.indexOf(bulan);
     let gTahun = parseInt(tahun);
@@ -21,14 +20,12 @@ window.generateCalendar = function(tahun, bulan) {
     let currW = 1;
 
     for (let d = 1; d <= jumlahHari; d++) {
-        let dayOfWeek = new Date(gTahun, gBulan, d).getDay(); // 0=Minggu, 1=Senin, dst.
+        let dayOfWeek = new Date(gTahun, gBulan, d).getDay(); 
         
-        // Setiap hari Senin (kecuali tgl 1), kita turun 1 baris ke minggu berikutnya
         if (dayOfWeek === 1 && d !== 1) {
             currW++;
         }
         
-        // Hanya rekap hari kerja (1=Senin sd 5=Jumat)
         if (dayOfWeek >= 1 && dayOfWeek <= 5) {
             if (!rawWeeks[currW]) rawWeeks[currW] = {};
             let namaH = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"][dayOfWeek-1];
@@ -36,8 +33,6 @@ window.generateCalendar = function(tahun, bulan) {
         }
     }
 
-    // Re-index agar urutan minggu selalu rapat (1, 2, 3...)
-    // Berguna kalau minggu pertama isinya cuma Sabtu/Minggu (hari libur)
     let finalWeeks = {};
     let idx = 1;
     for (let wKey in rawWeeks) {
@@ -241,17 +236,12 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
     let row = document.createElement("tr");
     if (isSubRow) row.classList.add("sub-row");
 
-    // --- LOGIKA TANGGAL OTOMATIS DARI SISTEM ---
+    // --- LOGIKA TANGGAL OTOMATIS (HANYA UNTUK KOLOM HARI KIRI) ---
     let tanggalAsli = window.hitungTanggalOtomatis(window.tahun, window.month, window.week, window.day);
     let teksHari = window.day || ""; 
-    let valueTglKalender = "";
 
     if (tanggalAsli && !isSubRow && !window.isSummaryMode) {
         teksHari = `${window.day}\n(${tanggalAsli})`; 
-        let splitTgl = tanggalAsli.split('/');
-        if (splitTgl.length === 3) {
-            valueTglKalender = `${splitTgl[2]}-${splitTgl[1]}-${splitTgl[0]}`; 
-        }
     }
 
     row.innerHTML = `
@@ -259,8 +249,7 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
         <td class="col-hari"><textarea class="cell-hari" readonly style="background:transparent; border:none; text-align:center; width:100%; resize:none; overflow:hidden;" oninput="autoHeight(this)">${teksHari}</textarea></td>
         <td class="col-matters"><textarea oninput="autoHeight(this)"></textarea></td>
         <td class="col-problem"><textarea oninput="autoHeight(this)"></textarea></td>
-        <td class="col-tanggal"><input type="date" value="${valueTglKalender}" onchange="aging(this)"></td>
-        <td class="col-pic"><input></td>
+        <td class="col-tanggal"><input type="date" onchange="aging(this)"></td> <td class="col-pic"><input></td>
         <td class="col-epc"><input></td>
         <td class="col-due"><input type="date" onchange="aging(this)"></td>
         <td class="col-done"><input type="date" onchange="aging(this)"></td>
@@ -298,7 +287,6 @@ window.pilihBulan = function(b, e) {
         <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
     `;
 
-    // --- HITUNG OTOMATIS ADA BERAPA MINGGU KERJA DI BULAN INI ---
     let kalender = window.generateCalendar(window.tahun, window.month);
     let maxMinggu = kalender ? Object.keys(kalender).length : 4; 
     
@@ -327,14 +315,13 @@ window.pilihMinggu = function(w) {
         <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
     `;
 
-    // --- MUNCULKAN HARI SESUAI BARIS KALENDER ASLI ---
     let kalender = window.generateCalendar(window.tahun, window.month);
     let angkaMingguTarget = parseInt(w.replace("Minggu ", ""));
     let mingguPilihan = kalender ? kalender[angkaMingguTarget] : null;
 
     if (mingguPilihan) {
         ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"].forEach(hari => {
-            if (mingguPilihan[hari]) { // Jika hari tersebut ada di minggu itu
+            if (mingguPilihan[hari]) { 
                 let btn = document.createElement("button");
                 btn.className = "dayBtn";
                 btn.innerText = `${hari} (${mingguPilihan[hari]})`; 
@@ -371,7 +358,7 @@ window.hitungTanggalOtomatis = function(tahun, bulan, minggu, hari) {
     let angkaMingguTarget = parseInt(minggu.replace("Minggu ", ""));
     let mingguPilihan = kalender[angkaMingguTarget];
 
-    if (!mingguPilihan || !mingguPilihan[hari]) return ""; // Cegah memanggil tanggal gaib
+    if (!mingguPilihan || !mingguPilihan[hari]) return ""; 
 
     let gBulan = urutanBulan.indexOf(bulan);
     let gTahun = parseInt(tahun);
