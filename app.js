@@ -1,4 +1,4 @@
-// ================= VARIABEL GLOBAL =================
+ // ================= VARIABEL GLOBAL =================
 window.tahun = "2026";
 window.month = "";
 window.week = "";
