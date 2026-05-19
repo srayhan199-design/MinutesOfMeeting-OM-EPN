@@ -270,7 +270,7 @@ function kembaliMinggu() { document.getElementById("dayMenu").style.display="non
 
 
 
-// ================= FITUR EXPORT KE PDF (TEKS BOLD & GARIS TEGAS) ==================
+// ================= FITUR EXPORT KE PDF (TEKS BOLD + TANGGAL OTOMATIS) ==================
 window.exportKePDF = function() {
     const jspdfLib = window.jspdf;
     if (!jspdfLib) {
@@ -279,12 +279,11 @@ window.exportKePDF = function() {
     }
 
     const { jsPDF } = jspdfLib;
-    // 'l' = Landscape (tidur)
     const doc = new jsPDF('l', 'mm', 'a4');
 
     let judulText = document.getElementById("judul").innerText;
     doc.setFontSize(16);
-    doc.setFont("helvetica", "bold"); // Bikin judul PDF jadi Bold
+    doc.setFont("helvetica", "bold"); 
     doc.text(judulText, 14, 15);
 
     let headers = [];
@@ -320,7 +319,7 @@ window.exportKePDF = function() {
             fontSize: 7, 
             cellPadding: 2,
             valign: 'middle',
-            fontStyle: 'bold',      // MODIFIKASI: Bikin semua teks di isi tabel jadi BOLD
+            fontStyle: 'bold',      
             lineWidth: 0.3,         
             lineColor: [0, 0, 0]    
         },
@@ -328,7 +327,7 @@ window.exportKePDF = function() {
             fillColor: [44, 62, 80], 
             textColor: 255, 
             halign: 'center',
-            fontStyle: 'bold',      // Header juga Bold
+            fontStyle: 'bold',      
             lineWidth: 0.3,         
             lineColor: [0, 0, 0]    
         },
@@ -338,23 +337,32 @@ window.exportKePDF = function() {
         }
     });
 
-    let namaFile = window.isSummaryMode ? "MOM_Monthly_Summary.pdf" : `MOM_Harian_${window.day || ''}.pdf`;
+    // --- LOGIKA AMBIL TANGGAL HARI INI ---
+    let hariIni = new Date();
+    let dd = String(hariIni.getDate()).padStart(2, '0');
+    let mm = String(hariIni.getMonth() + 1).padStart(2, '0'); // Januari = 0
+    let yyyy = hariIni.getFullYear();
+    let formatTanggal = dd + '-' + mm + '-' + yyyy; // Hasil: 19-05-2026
+
+    // Penamaan file + Tanggal Download
+    let namaFile = window.isSummaryMode ? 
+        `MOM_Summary_${window.month || 'Bulan'}_(${formatTanggal}).pdf` : 
+        `MOM_Harian_${window.day || ''}_(${formatTanggal}).pdf`;
+        
     doc.save(namaFile);
 };
-// ================= FITUR EXPORT KE EXCEL (FULL WARNA & GARIS TABEL) ==================
+
+// ================= FITUR EXPORT KE EXCEL (WARNA + TANGGAL OTOMATIS) ==================
 window.exportKeExcel = function() {
-    // 1. Ambil tabel asli dari HTML
     let table = document.getElementById("momTable");
-    let clone = table.cloneNode(true); // Foto (kloning) tabelnya
+    let clone = table.cloneNode(true); 
     let oriRows = table.querySelectorAll("tr");
     let cloneRows = clone.querySelectorAll("tr");
 
-    // 2. Bersihkan dan warnai tabel kloningan
     for (let i = 0; i < oriRows.length; i++) {
         let oriTr = oriRows[i];
         let cloneTr = cloneRows[i];
 
-        // Jika barisnya disembunyikan (filter), buang dari Excel
         if (oriTr.style.display === "none") {
             cloneTr.parentNode.removeChild(cloneTr);
             continue;
@@ -367,25 +375,22 @@ window.exportKeExcel = function() {
             let oriCell = oriCells[j];
             let cloneCell = cloneCells[j];
 
-            // Hapus kolom Aksi/Delete
             if (oriCell.id === "colDelete" || oriCell.classList.contains("col-del") || oriCell.style.display === "none") {
                 cloneCell.parentNode.removeChild(cloneCell);
                 continue;
             }
 
-            // Ambil teks dari ketikan input/select
             let input = oriCell.querySelector("input, textarea, select");
             if (input) {
                 if (input.tagName === "SELECT") {
                     let teksStatus = input.options[input.selectedIndex] ? input.options[input.selectedIndex].text : "";
                     cloneCell.innerText = teksStatus;
                     
-                    // KASIH WARNA UNTUK STATUS DI EXCEL
-                    if(teksStatus.toLowerCase() === "open") cloneCell.style.backgroundColor = "#e74c3c"; // Merah
-                    if(teksStatus.toLowerCase() === "process") cloneCell.style.backgroundColor = "#f1c40f"; // Kuning
-                    if(teksStatus.toLowerCase() === "close") cloneCell.style.backgroundColor = "#2ecc71"; // Hijau
+                    if(teksStatus.toLowerCase() === "open") cloneCell.style.backgroundColor = "#e74c3c"; 
+                    if(teksStatus.toLowerCase() === "process") cloneCell.style.backgroundColor = "#f1c40f"; 
+                    if(teksStatus.toLowerCase() === "close") cloneCell.style.backgroundColor = "#2ecc71"; 
                     
-                    cloneCell.style.color = (teksStatus.toLowerCase() === "process") ? "#000" : "#fff"; // Warna teks
+                    cloneCell.style.color = (teksStatus.toLowerCase() === "process") ? "#000" : "#fff"; 
                 } else {
                     cloneCell.innerText = input.value;
                 }
@@ -393,14 +398,12 @@ window.exportKeExcel = function() {
                 cloneCell.innerText = oriCell.querySelector("span").innerText;
             }
 
-            // TAMBAHKAN GARIS KOTAK TEGAS UNTUK SEMUA SEL
             cloneCell.style.border = "1px solid #000000";
             cloneCell.style.padding = "5px";
             cloneCell.style.verticalAlign = "top";
         }
     }
 
-    // 3. Bungkus jadi format file Excel (XLS) yang mendukung CSS Warna
     let htmlTemplate = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
     <head>
@@ -417,12 +420,23 @@ window.exportKeExcel = function() {
     </body>
     </html>`;
 
-    // 4. Download Filenya
+    // --- LOGIKA AMBIL TANGGAL HARI INI ---
+    let hariIni = new Date();
+    let dd = String(hariIni.getDate()).padStart(2, '0');
+    let mm = String(hariIni.getMonth() + 1).padStart(2, '0');
+    let yyyy = hariIni.getFullYear();
+    let formatTanggal = dd + '-' + mm + '-' + yyyy;
+
     let blob = new Blob([htmlTemplate], { type: 'application/vnd.ms-excel' });
     let url = URL.createObjectURL(blob);
     let a = document.createElement("a");
     a.href = url;
-    a.download = window.isSummaryMode ? "MOM_Summary_Lengkap.xls" : "MOM_Harian_Lengkap.xls";
+    
+    // Penamaan file Excel + Tanggal Download
+    a.download = window.isSummaryMode ? 
+        `MOM_Summary_${window.month || 'Bulan'}_(${formatTanggal}).xls` : 
+        `MOM_Harian_${window.day || ''}_(${formatTanggal}).xls`;
+        
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
