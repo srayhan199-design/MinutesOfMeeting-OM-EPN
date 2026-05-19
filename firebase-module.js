@@ -91,7 +91,7 @@ function parseGroups(rawData) {
 }
 
 const urutanBulanLokal = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-const urutanMingguLokal = ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4"];
+const urutanMingguLokal = ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4", "Minggu 5"]; // DITAMBAH MINGGU 5
 const urutanHariLokal = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 
 window.getHariSebelumnya = function(y, m, w, d) {
@@ -99,7 +99,7 @@ window.getHariSebelumnya = function(y, m, w, d) {
     dIdx--; 
     if (dIdx < 0) {
         dIdx = 4; wIdx--; 
-        if (wIdx < 0) { wIdx = 3; mIdx--; if (mIdx < 0) { mIdx = 11; yIdx--; } }
+        if (wIdx < 0) { wIdx = 4; mIdx--; if (mIdx < 0) { mIdx = 11; yIdx--; } } // MINGGU KE-5 AMAN
     }
     return { y: yIdx.toString(), m: urutanBulanLokal[mIdx], w: urutanMingguLokal[wIdx], d: urutanHariLokal[dIdx] };
 }
@@ -114,10 +114,23 @@ window.loadHariIni = async function() {
             currentSnap.val().forEach(d => {
                 let row = typeof window.tambah === "function" ? window.tambah(d[0] === "-") : tambah(d[0] === "-"); 
                 let els = row.querySelectorAll("input,textarea,select,span");
+                
                 for(let i=0; i < d.length; i++) {
                     if(!els[i]) continue;
-                    if(els[i].tagName === "SPAN") els[i].innerText = d[i] || "";
-                    else { els[i].value = d[i] || ""; if(els[i].tagName === "TEXTAREA" && typeof autoHeight === "function") autoHeight(els[i]); }
+                    let valCloud = d[i] || "";
+
+                    // 🔥 PELINDUNG TANGGAL OTOMATIS 🔥
+                    if (i === 1 || i === 4) {
+                        if (valCloud === "" || valCloud === window.day) {
+                            continue; // Skip penimpaan dari Firebase
+                        }
+                    }
+
+                    if(els[i].tagName === "SPAN") els[i].innerText = valCloud;
+                    else { 
+                        els[i].value = valCloud; 
+                        if(els[i].tagName === "TEXTAREA" && typeof autoHeight === "function") autoHeight(els[i]); 
+                    }
                 }
                 if(typeof window.setStatus === "function") window.setStatus(row.querySelector("select")); 
                 else if(typeof setStatus === "function") setStatus(row.querySelector("select")); 
@@ -152,8 +165,18 @@ window.tarikDataKemarin = async function() {
                             let els = row.querySelectorAll("input,textarea,select,span");
                             for(let i=0; i < d.length; i++) {
                                 if(!els[i]) continue;
-                                if(els[i].tagName === "SPAN") els[i].innerText = d[i] || "";
-                                else { els[i].value = d[i] || ""; if(els[i].tagName === "TEXTAREA" && typeof autoHeight === "function") autoHeight(els[i]); }
+                                let valCloud = d[i] || "";
+
+                                // 🔥 JANGAN TARIK TANGGAL HARI KEMARIN KE TABEL HARI INI 🔥
+                                if (i === 1 || i === 4) {
+                                    continue; 
+                                }
+
+                                if(els[i].tagName === "SPAN") els[i].innerText = valCloud;
+                                else { 
+                                    els[i].value = valCloud; 
+                                    if(els[i].tagName === "TEXTAREA" && typeof autoHeight === "function") autoHeight(els[i]); 
+                                }
                             }
                             if(typeof window.setStatus === "function") window.setStatus(row.querySelector("select")); else if(typeof setStatus === "function") setStatus(row.querySelector("select")); 
                         });
@@ -191,7 +214,6 @@ window.loadMonthlySummary = async function(targetMonth) {
         if (snapshot.exists()) {
             const dataBulanIni = snapshot.val(); 
             
-            // PERBAIKAN: Membaca hari murni berdasarkan urutan waktu (Senin -> Jumat), bukan Abjad!
             urutanMingguLokal.forEach(minggu => {
                 if(dataBulanIni[minggu]) {
                     urutanHariLokal.forEach(hari => {
@@ -263,7 +285,6 @@ window.loadKegiatan = function() {
     try {
         window.isSummaryMode = false; 
         if(typeof window.resetDisplay === "function") window.resetDisplay();
-        else if(typeof resetDisplay === "function") resetDisplay();
         
         let kegCont = document.getElementById("kegiatanContainer");
         if(kegCont) kegCont.style.display = "block";
@@ -275,12 +296,8 @@ window.loadKegiatan = function() {
         if(btnToggle) btnToggle.style.display = "inline-block";
         
         if(typeof window.triggerFade === "function") window.triggerFade("kegiatanContainer");
-        else if(typeof triggerFade === "function") triggerFade("kegiatanContainer");
-        
         if(typeof window.fetchFoto === "function") window.fetchFoto('Semua');
-    } catch (error) {
-        alert("ALARM SYSTEM ERROR: " + error.message);
-    }
+    } catch (error) { console.error(error.message); }
 }
 
 window.fetchFoto = async function(filterKategori = 'Semua') {
@@ -318,7 +335,7 @@ window.fetchFoto = async function(filterKategori = 'Semua') {
                         const card = document.createElement("div"); card.className = "photo-card";
                         card.innerHTML = `
                             <div class="photo-img-wrapper">
-                                <img src="${imgSrc}" loading="lazy" onclick="if(typeof window.bukaLightbox === 'function') window.bukaLightbox(this.src, '${safeComment}'); else bukaLightbox(this.src, '${safeComment}');">
+                                <img src="${imgSrc}" loading="lazy" onclick="if(typeof window.bukaLightbox === 'function') window.bukaLightbox(this.src, '${safeComment}');">
                                 <span class="photo-category-badge">${kat}</span>
                                 <button class="del-photo-btn" onclick="hapusFoto('${kat}', '${key}')">✖</button>
                             </div>
@@ -330,7 +347,7 @@ window.fetchFoto = async function(filterKategori = 'Semua') {
             });
         } 
         if (!hasPhoto && gallery) { gallery.innerHTML = `<p style='padding: 20px;'>Belum ada foto kategori: <b>${filterKategori}</b>.</p>`; }
-    } catch (err) { alert("ALARM FIREBASE FOTO: " + err.message); }
+    } catch (err) { console.error(err); }
 }
 
 window.uploadFoto = function() {
@@ -353,7 +370,7 @@ window.uploadFoto = function() {
                 const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 try {
                     await push(ref(db, `Kegiatan/${kategori}`), { image: canvas.toDataURL("image/jpeg", 0.75), comment: komentar });
-                    if(typeof window.toggleUploadForm === "function") window.toggleUploadForm(); else toggleUploadForm();
+                    if(typeof window.toggleUploadForm === "function") window.toggleUploadForm(); 
                     window.fetchFoto('Semua'); 
                 } catch (err) { alert("Gagal upload foto."); } finally { btnUpload.innerText = btnOriginalText; btnUpload.disabled = false; }
             }
