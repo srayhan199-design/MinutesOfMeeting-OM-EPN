@@ -237,7 +237,6 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
     else { tbody.appendChild(row); }
     window.updateNomor(); 
     
-    // Sesuaikan tinggi otomatis untuk area textarea hari
     let ta = row.querySelector('.col-hari textarea');
     if(ta) window.autoHeight(ta);
     
@@ -261,7 +260,49 @@ window.pilihBulan = function(b, e) {
 window.pilihMinggu = function(w) { 
     window.week = w; 
     document.getElementById("weekMenu").style.display="none"; 
-    document.getElementById("dayMenu").style.display="block"; 
+    
+    // --- LOGIKA MENU HARI SUPER DINAMIS (BACA KALENDER) ---
+    const dayMenu = document.getElementById("dayMenu");
+    
+    dayMenu.innerHTML = `
+        <button class="weekBtn" style="background:#f8d7da; color:#721c24; border-color:#f5c6cb;" onclick="window.kembaliMinggu()">⬅ Kembali ke Minggu</button>
+        <h2 style="color:#2c3e50;">Pilih Hari</h2>
+        <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
+    `;
+
+    let gBulan = urutanBulan.indexOf(window.month);
+    let gTahun = parseInt(window.tahun);
+    let jumlahHari = new Date(gTahun, gBulan + 1, 0).getDate();
+    let angkaMinggu = parseInt(w.replace("Minggu ", ""));
+    const daftarHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+    
+    daftarHari.forEach(hari => {
+        let targetHariIdx = daftarHari.indexOf(hari); 
+        let tanggalKetemu = [];
+        
+        for (let d = 1; d <= jumlahHari; d++) {
+            let cekTanggal = new Date(gTahun, gBulan, d);
+            let hariKe = cekTanggal.getDay(); 
+            let hariLokalIdx = hariKe - 1;
+            if (hariKe === 0) hariLokalIdx = 5; 
+            
+            if (hariLokalIdx === targetHariIdx) {
+                tanggalKetemu.push(d); 
+            }
+        }
+        
+        // JIKA HARINYA ADA DI MINGGU INI, TAMPILKAN TOMBOLNYA
+        if (tanggalKetemu[angkaMinggu - 1]) {
+            let tglAsli = tanggalKetemu[angkaMinggu - 1];
+            let btn = document.createElement("button");
+            btn.className = "dayBtn";
+            btn.innerText = `${hari} (${tglAsli})`; 
+            btn.onclick = function() { window.pilihHari(hari); };
+            dayMenu.appendChild(btn);
+        }
+    });
+
+    dayMenu.style.display="block"; 
     window.triggerFade("dayMenu"); 
 }
 
@@ -308,8 +349,7 @@ window.hitungTanggalOtomatis = function(tahun, bulan, minggu, hari) {
     }
 
     let hasilTanggal = tanggalKetemu[angkaMinggu - 1];
-    if (!hasilTanggal) hasilTanggal = tanggalKetemu[tanggalKetemu.length - 1];
-    if (!hasilTanggal) return "";
+    if (!hasilTanggal) return ""; // KEMBALIKAN KOSONG JIKA TANGGAL TIDAK ADA DI KALENDER
 
     let dd = String(hasilTanggal).padStart(2, '0');
     let mm = String(gBulan + 1).padStart(2, '0');
@@ -484,4 +524,109 @@ window.exportKeExcel = function() {
     a.click();
     document.body.removeChild(a);
 };
- 
+
+// ================= FITUR FOTO KEGIATAN =================
+window.loadKegiatan = function() {
+    try {
+        window.isSummaryMode = false; 
+        if(typeof window.resetDisplay === "function") window.resetDisplay();
+        
+        let kegCont = document.getElementById("kegiatanContainer");
+        if(kegCont) kegCont.style.display = "block";
+        
+        let formUpload = document.getElementById("formUploadFoto");
+        if(formUpload) formUpload.style.display = "none";
+        
+        let btnToggle = document.getElementById("btnToggleUpload");
+        if(btnToggle) btnToggle.style.display = "inline-block";
+        
+        if(typeof window.triggerFade === "function") window.triggerFade("kegiatanContainer");
+        if(typeof window.fetchFoto === "function") window.fetchFoto('Semua');
+    } catch (error) { console.error(error.message); }
+}
+
+window.fetchFoto = async function(filterKategori = 'Semua') {
+    try {
+        const tombolFilters = document.querySelectorAll('#filterKegiatanContainer .stat-box');
+        tombolFilters.forEach(btn => {
+            btn.style.opacity = "0.5"; btn.style.transform = "scale(0.95)"; btn.style.boxShadow = "none";
+            if (btn.innerText.includes(filterKategori) || (filterKategori === 'Semua' && btn.innerText.includes('Semua'))) {
+                btn.style.opacity = "1"; btn.style.transform = "scale(1.05)"; btn.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+            }
+        });
+
+        const gallery = document.getElementById("galleryContainer");
+        if(gallery) gallery.innerHTML = "<p>Memuat foto kegiatan...</p>";
+
+        const snap = await get(ref(db, `Kegiatan`));
+        if(gallery) gallery.innerHTML = ""; let hasPhoto = false;
+
+        if (snap.exists()) {
+            const data = snap.val();
+            const listKategori = ["Lapangan", "Meeting", "Bebas"]; 
+
+            listKategori.forEach(kat => {
+                if (filterKategori !== 'Semua' && filterKategori !== kat) return;
+                if (data[kat]) {
+                    let keys = Object.keys(data[kat]).reverse(); 
+                    keys.forEach(key => {
+                        if(kat === 'Gallery') return; 
+                        hasPhoto = true;
+                        let imgData = data[kat][key];
+                        let imgSrc = typeof imgData === 'string' ? imgData : imgData.image; 
+                        let imgComment = typeof imgData === 'string' ? "" : (imgData.comment || "");
+                        let safeComment = imgComment.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '<br>');
+
+                        const card = document.createElement("div"); card.className = "photo-card";
+                        card.innerHTML = `
+                            <div class="photo-img-wrapper">
+                                <img src="${imgSrc}" loading="lazy" onclick="if(typeof window.bukaLightbox === 'function') window.bukaLightbox(this.src, '${safeComment}');">
+                                <span class="photo-category-badge">${kat}</span>
+                                <button class="del-photo-btn" onclick="hapusFoto('${kat}', '${key}')">✖</button>
+                            </div>
+                            ${imgComment ? `<div class="photo-comment">${imgComment.replace(/\n/g, '<br>')}</div>` : ''}
+                        `;
+                        if(gallery) gallery.appendChild(card);
+                    });
+                }
+            });
+        } 
+        if (!hasPhoto && gallery) { gallery.innerHTML = `<p style='padding: 20px;'>Belum ada foto kategori: <b>${filterKategori}</b>.</p>`; }
+    } catch (err) { console.error(err); }
+}
+
+window.uploadFoto = function() {
+    const files = document.getElementById("fotoInput").files;
+    const kategori = document.getElementById("kategoriFoto").value; 
+    const komentar = document.getElementById("fotoKomentar").value; 
+    if (files.length === 0) { alert("Pilih foto terlebih dahulu!"); return; }
+
+    const btnUpload = document.querySelector("#formUploadFoto button.add-btn");
+    const btnOriginalText = btnUpload.innerText;
+    btnUpload.innerText = "⏳ Uploading..."; btnUpload.disabled = true;
+
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image(); img.src = e.target.result;
+            img.onload = async function() {
+                const canvas = document.createElement("canvas");
+                const scaleSize = 1000 / img.width; canvas.width = 1000; canvas.height = img.height * scaleSize;
+                const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                try {
+                    await push(ref(db, `Kegiatan/${kategori}`), { image: canvas.toDataURL("image/jpeg", 0.75), comment: komentar });
+                    if(typeof window.toggleUploadForm === "function") window.toggleUploadForm(); 
+                    window.fetchFoto('Semua'); 
+                } catch (err) { alert("Gagal upload foto."); } finally { btnUpload.innerText = btnOriginalText; btnUpload.disabled = false; }
+            }
+        }
+        reader.readAsDataURL(file);
+    });
+}
+
+window.hapusFoto = async function(kategori, key) {
+    if(event) event.stopPropagation();
+    if (confirm(`Yakin hapus foto ${kategori}?`)) {
+        try { await remove(ref(db, `Kegiatan/${kategori}/${key}`)); window.fetchFoto('Semua'); } catch(err) { alert("Gagal hapus."); }
+    }
+}
