@@ -167,3 +167,30 @@ table textarea { resize: none; overflow: hidden; min-height: 45px; display: bloc
 .login-box button { width: 100%; padding: 12px; background: #4e73df; color: white; border: none; border-radius: 4px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; }
 .login-box button:hover { background: #2e59d9; }
 #loginError { color: #e74c3c; font-size: 14px; margin-top: 10px; display: none; font-weight: bold; }
+/* ================= KUSTOMISASI SCROLLBAR (ANTI GESER) ================= */
+/* Memaksa scrollbar selalu tampil dengan desain elegan agar layout tidak lompat */
+::-webkit-scrollbar {
+    width: 12px;  /* Lebar scrollbar vertikal */
+    height: 12px; /* Tinggi scrollbar horizontal */
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9; 
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #94a3b8; 
+    border-radius: 6px;
+    border: 3px solid #f1f5f9; /* Memberi efek spasi (padding) agar lebih cantik */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b; 
+}
+
+/* Mengunci ruang gulir tabel agar selalu siap sedia dan tidak kaget */
+.table-responsive {
+    overflow-y: scroll !important; 
+    overflow-x: auto !important;
+}
