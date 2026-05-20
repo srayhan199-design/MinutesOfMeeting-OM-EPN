@@ -67,8 +67,20 @@
             color: #000000 !important; 
             font-size: 14px !important; 
         }
-        /* =================================================================== */
 
+        /* ================= KODE PELEBAR KOLOM REMARKS ================= */
+        #momTable th.col-remarks, 
+        #momTable td.col-remarks {
+            min-width: 300px !important; /* Paksa kolom Remarks menjadi lebar */
+            width: 25% !important; /* Mengambil jatah 25% dari total panjang tabel */
+        }
+
+        /* Menjaga Matters & Problem seimbang agar tidak ikut kegencet */
+        #momTable th.col-matters, #momTable td.col-matters,
+        #momTable th.col-problem, #momTable td.col-problem {
+            min-width: 200px !important; 
+        }
+        /* =================================================================== */
     </style>
 </head>
 
@@ -144,7 +156,6 @@
             <button class="weekBtn" onclick="pilihMinggu('Minggu 4')">Minggu 4</button>
             <button class="weekBtn" onclick="pilihMinggu('Minggu 5')">Minggu 5</button>
         </div>
-
 
         <div id="dayMenu" class="fade-in">
             <button class="weekBtn" style="background:#f8d7da; color:#721c24; border-color:#f5c6cb;" onclick="kembaliMinggu()">⬅ Kembali ke Minggu</button>
