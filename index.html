@@ -50,7 +50,7 @@
             padding: 15px !important;
         }
         .container {
-            max-width: 98% !important; /* Memaksa kotak putih melebar sampai 98% layar */
+            max-width: 98% !important; 
             width: 100% !important;
         }
         .table-responsive {
@@ -71,11 +71,10 @@
         /* ================= KODE PELEBAR KOLOM REMARKS ================= */
         #momTable th.col-remarks, 
         #momTable td.col-remarks {
-            min-width: 300px !important; /* Paksa kolom Remarks menjadi lebar */
-            width: 25% !important; /* Mengambil jatah 25% dari total panjang tabel */
+            min-width: 300px !important; 
+            width: 25% !important; 
         }
 
-        /* Menjaga Matters & Problem seimbang agar tidak ikut kegencet */
         #momTable th.col-matters, #momTable td.col-matters,
         #momTable th.col-problem, #momTable td.col-problem {
             min-width: 200px !important; 
@@ -173,10 +172,18 @@
 
             <div class="header-controls">
                 <h2 id="judul"></h2>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button class="add-btn" style="background:#e74c3c; margin: 0; padding: 10px 15px;" onclick="exportKePDF()">📥 Download PDF</button>
-                    <button class="add-btn" style="background:#27ae60; margin: 0; padding: 10px 15px;" onclick="exportKeExcel()">📊 Download Excel</button>
-                    <input type="text" id="searchInput" class="search-bar" onkeyup="cariData()" placeholder="🔍 Cari data...">
+                
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                    
+                    <div id="realtimeClock" style="font-weight: 900; font-size: 18px; color: #2c3e50; background: #f1f2f6; padding: 5px 15px; border-radius: 8px; border: 2px solid #cbd5e1; letter-spacing: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                        00:00:00 WIB
+                    </div>
+
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="add-btn" style="background:#e74c3c; margin: 0; padding: 10px 15px;" onclick="exportKePDF()">📥 Download PDF</button>
+                        <button class="add-btn" style="background:#27ae60; margin: 0; padding: 10px 15px;" onclick="exportKeExcel()">📊 Download Excel</button>
+                        <input type="text" id="searchInput" class="search-bar" onkeyup="cariData()" placeholder="🔍 Cari data...">
+                    </div>
                 </div>
             </div>
 
@@ -277,8 +284,8 @@
         </div>
     </div>
 
-    <script src="app.js?v=987654321"></script>
-    <script type="module" src="firebase-module.js?v=987654321"></script>
+    <script src="app.js?v=123456789"></script>
+    <script type="module" src="firebase-module.js?v=123456789"></script>
 
 </body>
 </html>
