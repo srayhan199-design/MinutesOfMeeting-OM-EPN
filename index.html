@@ -94,14 +94,14 @@
         </div>
 
         <div class="container fade-in" id="momContainer">
-            <button class="weekBtn" id="backToDayBtn" style="margin-bottom:15px;" onclick="kembaliHari()">⬅ Kembali</button>
+            <button class="weekBtn" id="backToDayBtn" style="margin-bottom:15px;" onclick="document.getElementById('momContainer').style.display='none'; document.getElementById('dayMenu').style.display='none'; document.getElementById('weekMenu').style.display='block';">⬅ Kembali</button>
 
             <div class="header-controls">
                 <h2 id="judul"></h2>
-                
+
                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                     <div id="realtimeClock">Memuat jam...</div>
-                    
+
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <button class="add-btn" style="background:#e74c3c; margin: 0; padding: 10px 15px;" onclick="exportKePDF()">📥 Download PDF</button>
                         <button class="add-btn" style="background:#27ae60; margin: 0; padding: 10px 15px;" onclick="exportKeExcel()">📊 Download Excel</button>
@@ -152,7 +152,7 @@
             <button class="weekBtn" onclick="home()" style="margin-bottom:15px; float: left;">⬅ Kembali</button>
             <h2 id="judulKegiatan" style="color:#2c3e50; border-bottom:2px solid #eee; padding-bottom:10px; clear: both;">Dokumentasi Kegiatan</h2>
             <button class="add-btn" id="btnToggleUpload" onclick="toggleUploadForm()" style="margin-bottom: 20px; font-size: 15px;">+ Tambah Foto Baru</button>
-            
+
             <div class="upload-section" id="formUploadFoto">
                 <h3 style="margin-top:0; color:#4e73df;">Form Upload Dokumentasi</h3>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
