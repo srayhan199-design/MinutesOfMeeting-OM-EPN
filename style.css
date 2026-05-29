@@ -74,13 +74,13 @@ th:last-child, td:last-child { border-right: none; }
 #momTable td.col-problem { background-color: #fffbeb; } 
 #momTable td.col-remarks { background-color: #eff6ff; } 
 
-/* ================= UKURAN PERSENTASE KOLOM (BARU: DENGAN KATEGORI) ================= */
+/* ================= UKURAN PERSENTASE KOLOM (SUDAH ADA KATEGORI) ================= */
 .col-remarks { width: 22% !important; white-space: normal; } 
 .col-problem { width: 19% !important; white-space: normal; } 
 .col-matters { width: 16% !important; white-space: normal; } 
 .col-no { width: 4% !important; }
 .col-hari { width: 9% !important; }
-.col-kategori { width: 8% !important; } /* INI KOLOM BARUNYA */
+.col-kategori { width: 8% !important; } /* KOLOM KATEGORI */
 .col-tanggal, .col-pic, .col-epc, .col-due, .col-done, .col-aging, .col-status { width: 8% !important; }
 #colDelete { width: 6% !important; }
 
@@ -96,6 +96,7 @@ table textarea { resize: none; overflow: hidden; min-height: 45px; display: bloc
 .sub-row td { background-color: #f8fafc; border-top: 1px dashed #cbd5e1; }
 .sub-row td.col-no { background-color: #f1f5f9 !important; border-top: none; }
 
+/* WARNA STATUS */
 .status-open { background: #e74c3c !important; }
 .status-open select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
 .status-open select option { color: black; background: white; }
@@ -108,10 +109,16 @@ table textarea { resize: none; overflow: hidden; min-height: 45px; display: bloc
 .status-close select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
 .status-close select option { color: black; background: white; }
 
-/* WARNA DROPDOWN KATEGORI */
-.kat-retensi { background-color: #8e44ad !important; color: white !important; } 
-.kat-non { background-color: transparent !important; color: black !important; }
+/* WARNA KATEGORI (RETENSI / NON RETENSI) */
+.kat-retensi { background-color: #8e44ad !important; } 
+.kat-retensi select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
+.kat-retensi select option { color: black; background: white; }
 
+.kat-non { background-color: #34495e !important; }
+.kat-non select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
+.kat-non select option { color: black; background: white; }
+
+/* ================= TOMBOL DAN STATS ================= */
 .add-btn { background: #4e73df; color: white; padding: 10px 20px; margin-top: 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 .add-btn:hover { filter: brightness(0.9); }
 .weekBtn, .dayBtn { padding: 12px 25px; margin: 5px; border: 1px solid #cbd5e1; border-radius: 4px; background: white; color: #334155; font-weight: bold; cursor: pointer; transition: 0.2s; }
@@ -178,7 +185,19 @@ table textarea { resize: none; overflow: hidden; min-height: 45px; display: bloc
 #loginError { color: #e74c3c; font-size: 14px; margin-top: 10px; display: none; font-weight: bold; }
 
 /* ================= KUSTOMISASI SCROLLBAR ================= */
-::-webkit-scrollbar { width: 12px; height: 12px; }
-::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
-::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 6px; border: 3px solid #e2e8f0; }
-::-webkit-scrollbar-thumb:hover { background: #64748b; }
+::-webkit-scrollbar {
+    width: 12px;  
+    height: 12px; 
+}
+::-webkit-scrollbar-track {
+    background: transparent; 
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+    background: #94a3b8; 
+    border-radius: 6px;
+    border: 3px solid #e2e8f0; 
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b; 
+}
