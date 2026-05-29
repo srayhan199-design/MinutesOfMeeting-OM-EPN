@@ -1,10 +1,11 @@
- // ================= VARIABEL GLOBAL =================
+// ================= VARIABEL GLOBAL =================
 window.tahun = "2026";
 window.month = "";
 window.week = "";
 window.day = "";
 window.isSummaryMode = false;
 let currentStatusFilter = 'all'; 
+let currentKategoriFilter = 'Semua'; // TAMBAHAN VARIABEL KATEGORI
 
 const urutanHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -21,11 +22,11 @@ window.generateCalendar = function(tahun, bulan) {
 
     for (let d = 1; d <= jumlahHari; d++) {
         let dayOfWeek = new Date(gTahun, gBulan, d).getDay(); 
-        
+
         if (dayOfWeek === 1 && d !== 1) {
             currW++;
         }
-        
+
         if (dayOfWeek >= 1 && dayOfWeek <= 5) {
             if (!rawWeeks[currW]) rawWeeks[currW] = {};
             let namaH = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"][dayOfWeek-1];
@@ -131,7 +132,9 @@ window.resetDisplay = function() {
     document.getElementById("statContainer").style.display = "none";
     document.getElementById("kegiatanContainer").style.display = "none";
     document.getElementById("searchInput").value = "";
+    document.getElementById("filterKategori").value = "Semua"; // Reset filter
     currentStatusFilter = "all";
+    currentKategoriFilter = "Semua";
     document.getElementById("colDelete").style.display = "table-cell";
 }
 
@@ -145,6 +148,7 @@ window.home = function() {
 // ================= FILTER & SEARCH =================
 window.cariData = function() { window.applyFilters(); }
 window.filterGlobal = function(status) { currentStatusFilter = status; window.applyFilters(); }
+window.filterDataKategori = function() { currentKategoriFilter = document.getElementById("filterKategori").value; window.applyFilters(); }
 
 window.applyFilters = function() {
     let keyword = document.getElementById("searchInput").value.toLowerCase();
@@ -152,23 +156,29 @@ window.applyFilters = function() {
 
     trs.forEach(r => {
         let sVal = "";
-        let selectEl = r.querySelector("select");
-        if (selectEl) { sVal = selectEl.value; } 
-        else {
-            let statusTd = r.querySelector(".col-status");
-            if(statusTd) {
-                if(statusTd.classList.contains("status-open")) sVal = "open";
-                else if(statusTd.classList.contains("status-process")) sVal = "process";
-                else if(statusTd.classList.contains("status-close")) sVal = "close";
-            }
-        }
+        let kVal = ""; // Nilai Kategori
+        
+        // Ambil Nilai Status
+        let statusTd = r.querySelector(".col-status select");
+        if (statusTd) { sVal = statusTd.value; } 
+
+        // Ambil Nilai Kategori
+        let kategoriTd = r.querySelector(".col-kategori select");
+        if(kategoriTd) { kVal = kategoriTd.value; }
+
         let matchStatus = (currentStatusFilter === 'all' || sVal === currentStatusFilter);
+        let matchKategori = (currentKategoriFilter === 'Semua' || kVal === currentKategoriFilter);
+        
         let textContent = "";
         r.querySelectorAll("input, textarea, select").forEach(el => textContent += el.value.toLowerCase() + " ");
         r.querySelectorAll("div, span").forEach(el => textContent += el.innerText.toLowerCase() + " ");
         let matchSearch = textContent.includes(keyword);
 
-        if (matchStatus && matchSearch) { r.style.display = "table-row"; } else { r.style.display = "none"; }
+        if (matchStatus && matchKategori && matchSearch) { 
+            r.style.display = "table-row"; 
+        } else { 
+            r.style.display = "none"; 
+        }
     });
     window.updateNomor();
 }
@@ -231,12 +241,19 @@ window.setStatus = function(s) {
     if(!s) return; s.parentElement.className = "col-status status-" + s.value; window.aging(s);
 }
 
+window.setKategori = function(k) {
+    if(!k) return; 
+    if(k.value === "Retensi") k.parentElement.className = "col-kategori kat-retensi";
+    else if(k.value === "Non Retensi") k.parentElement.className = "col-kategori kat-non";
+    else k.parentElement.className = "col-kategori";
+}
+
 window.tambah = function(isSubRow = false, referenceRow = null) {
     let tbody = document.querySelector("#momTable tbody");
     let row = document.createElement("tr");
     if (isSubRow) row.classList.add("sub-row");
 
-    // --- LOGIKA TANGGAL OTOMATIS (HANYA UNTUK KOLOM HARI KIRI) ---
+    // --- LOGIKA TANGGAL OTOMATIS ---
     let tanggalAsli = window.hitungTanggalOtomatis(window.tahun, window.month, window.week, window.day);
     let teksHari = window.day || ""; 
 
@@ -244,17 +261,20 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
         teksHari = `${window.day}\n(${tanggalAsli})`; 
     }
 
+    // --- TAMBAHAN KOLOM KATEGORI DI SEBELAH STATUS ---
     row.innerHTML = `
         <td class="col-no"><input class="no" readonly style="background:transparent; border:none; text-align:center; font-weight:bold; font-size:16px; width:100%;"></td>
         <td class="col-hari"><textarea class="cell-hari" readonly style="background:transparent; border:none; text-align:center; width:100%; resize:none; overflow:hidden;" oninput="autoHeight(this)">${teksHari}</textarea></td>
         <td class="col-matters"><textarea oninput="autoHeight(this)"></textarea></td>
         <td class="col-problem"><textarea oninput="autoHeight(this)"></textarea></td>
-        <td class="col-tanggal"><input type="date" onchange="aging(this)"></td> <td class="col-pic"><input></td>
+        <td class="col-tanggal"><input type="date" onchange="aging(this)"></td> 
+        <td class="col-pic"><input></td>
         <td class="col-epc"><input></td>
         <td class="col-due"><input type="date" onchange="aging(this)"></td>
         <td class="col-done"><input type="date" onchange="aging(this)"></td>
         <td class="col-aging"><span style="font-weight:bold; color:#495057;"></span></td>
         <td class="col-status"><select onchange="setStatus(this)"><option></option><option value="open">Open</option><option value="process">Process</option><option value="close">Close</option></select></td>
+        <td class="col-kategori"><select onchange="setKategori(this)"><option></option><option value="Retensi">Retensi</option><option value="Non Retensi">Non Retensi</option></select></td>
         <td class="col-remarks"><textarea oninput="autoHeight(this)"></textarea></td>
         <td class="col-del" style="white-space:nowrap;">
             <button onclick="tambahSub(this)" style="color:#2ecc71; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px; margin-right:5px;">➕</button>
@@ -264,10 +284,10 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
     if (referenceRow) { tbody.insertBefore(row, referenceRow.nextSibling); } 
     else { tbody.appendChild(row); }
     window.updateNomor(); 
-    
+
     let ta = row.querySelector('.col-hari textarea');
     if(ta) window.autoHeight(ta);
-    
+
     return row;
 }
 
@@ -278,10 +298,10 @@ window.pilihBulan = function(b, e) {
     window.isSummaryMode = false; 
     window.month = b; 
     window.resetDisplay(); 
-    
+
     const weekMenu = document.getElementById("weekMenu");
     weekMenu.style.display = "block"; 
-    
+
     weekMenu.innerHTML = `
         <h2 style="color:#2c3e50; margin-top:0;">Pilih Minggu</h2>
         <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
@@ -289,7 +309,7 @@ window.pilihBulan = function(b, e) {
 
     let kalender = window.generateCalendar(window.tahun, window.month);
     let maxMinggu = kalender ? Object.keys(kalender).length : 4; 
-    
+
     for (let w = 1; w <= maxMinggu; w++) {
         let btn = document.createElement("button");
         btn.className = "weekBtn";
@@ -307,7 +327,7 @@ window.pilihBulan = function(b, e) {
 window.pilihMinggu = function(w) { 
     window.week = w; 
     document.getElementById("weekMenu").style.display="none"; 
-    
+
     const dayMenu = document.getElementById("dayMenu");
     dayMenu.innerHTML = `
         <button class="weekBtn" style="background:#f8d7da; color:#721c24; border-color:#f5c6cb;" onclick="window.kembaliMinggu()">⬅ Kembali ke Minggu</button>
@@ -394,6 +414,7 @@ window.exportKePDF = function() {
 
     let rows = [];
     document.querySelectorAll("#momTable tbody tr").forEach(tr => {
+        // Abaikan baris yang sedang difilter
         if (tr.style.display === "none") return;
 
         let rowData = [];
@@ -431,8 +452,9 @@ window.exportKePDF = function() {
             lineColor: [0, 0, 0]    
         },
         columnStyles: { 
-            0: { cellWidth: 10 }, 
-            1: { cellWidth: 26 }    
+            0: { cellWidth: 8 }, 
+            1: { cellWidth: 20 },
+            11: { cellWidth: 15 } // Kolom Kategori di PDF
         }
     });
 
@@ -442,9 +464,14 @@ window.exportKePDF = function() {
     let yyyy = hariIni.getFullYear();
     let formatTanggal = dd + '-' + mm + '-' + yyyy; 
 
+    // Tambahkan Label Filter di Nama File Jika Ada Filter
+    let namaKategori = "";
+    if(currentKategoriFilter === "Retensi") namaKategori = "_RETENSI";
+    if(currentKategoriFilter === "Non Retensi") namaKategori = "_NON_RETENSI";
+
     let namaFile = window.isSummaryMode ? 
-        `MOM_Summary_${window.month || 'Bulan'}_(${formatTanggal}).pdf` : 
-        `MOM_Harian_${window.day || ''}_(${formatTanggal}).pdf`;
+        `MOM_Summary_${window.month || 'Bulan'}${namaKategori}_(${formatTanggal}).pdf` : 
+        `MOM_Harian_${window.day || ''}${namaKategori}_(${formatTanggal}).pdf`;
 
     doc.save(namaFile);
 };
@@ -460,6 +487,7 @@ window.exportKeExcel = function() {
         let oriTr = oriRows[i];
         let cloneTr = cloneRows[i];
 
+        // Abaikan baris yang sedang difilter
         if (oriTr.style.display === "none") {
             cloneTr.parentNode.removeChild(cloneTr);
             continue;
@@ -480,14 +508,17 @@ window.exportKeExcel = function() {
             let input = oriCell.querySelector("input, textarea, select");
             if (input) {
                 if (input.tagName === "SELECT") {
-                    let teksStatus = input.options[input.selectedIndex] ? input.options[input.selectedIndex].text : "";
-                    cloneCell.innerText = teksStatus;
+                    let teksPilihan = input.options[input.selectedIndex] ? input.options[input.selectedIndex].text : "";
+                    cloneCell.innerText = teksPilihan;
 
-                    if(teksStatus.toLowerCase() === "open") cloneCell.style.backgroundColor = "#e74c3c"; 
-                    if(teksStatus.toLowerCase() === "process") cloneCell.style.backgroundColor = "#f1c40f"; 
-                    if(teksStatus.toLowerCase() === "close") cloneCell.style.backgroundColor = "#2ecc71"; 
+                    // Logika Warna Excel
+                    if(teksPilihan.toLowerCase() === "open") cloneCell.style.backgroundColor = "#e74c3c"; 
+                    if(teksPilihan.toLowerCase() === "process") cloneCell.style.backgroundColor = "#f1c40f"; 
+                    if(teksPilihan.toLowerCase() === "close") cloneCell.style.backgroundColor = "#2ecc71"; 
+                    if(teksPilihan.toLowerCase() === "retensi") cloneCell.style.backgroundColor = "#8e44ad"; 
+                    if(teksPilihan.toLowerCase() === "non retensi") cloneCell.style.backgroundColor = "#34495e"; 
 
-                    cloneCell.style.color = (teksStatus.toLowerCase() === "process") ? "#000" : "#fff"; 
+                    cloneCell.style.color = (teksPilihan.toLowerCase() === "process") ? "#000" : "#fff"; 
                 } else {
                     cloneCell.innerText = input.value;
                 }
@@ -524,14 +555,19 @@ window.exportKeExcel = function() {
     let yyyy = hariIni.getFullYear();
     let formatTanggal = dd + '-' + mm + '-' + yyyy;
 
+    // Tambahkan Label Filter di Nama File
+    let namaKategori = "";
+    if(currentKategoriFilter === "Retensi") namaKategori = "_RETENSI";
+    if(currentKategoriFilter === "Non Retensi") namaKategori = "_NON_RETENSI";
+
     let blob = new Blob([htmlTemplate], { type: 'application/vnd.ms-excel' });
     let url = URL.createObjectURL(blob);
     let a = document.createElement("a");
     a.href = url;
 
     a.download = window.isSummaryMode ? 
-        `MOM_Summary_${window.month || 'Bulan'}_(${formatTanggal}).xls` : 
-        `MOM_Harian_${window.day || ''}_(${formatTanggal}).xls`;
+        `MOM_Summary_${window.month || 'Bulan'}${namaKategori}_(${formatTanggal}).xls` : 
+        `MOM_Harian_${window.day || ''}${namaKategori}_(${formatTanggal}).xls`;
 
     document.body.appendChild(a);
     a.click();
@@ -543,16 +579,16 @@ window.loadKegiatan = function() {
     try {
         window.isSummaryMode = false; 
         if(typeof window.resetDisplay === "function") window.resetDisplay();
-        
+
         let kegCont = document.getElementById("kegiatanContainer");
         if(kegCont) kegCont.style.display = "block";
-        
+
         let formUpload = document.getElementById("formUploadFoto");
         if(formUpload) formUpload.style.display = "none";
-        
+
         let btnToggle = document.getElementById("btnToggleUpload");
         if(btnToggle) btnToggle.style.display = "inline-block";
-        
+
         if(typeof window.triggerFade === "function") window.triggerFade("kegiatanContainer");
         if(typeof window.fetchFoto === "function") window.fetchFoto('Semua');
     } catch (error) { console.error(error.message); }
