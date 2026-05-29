@@ -39,7 +39,7 @@ body { display: flex; background-color: #f4f6f9; }
 #homeText::after { content: ''; display: block; margin: 20px auto 0; width: 120px; height: 4px; background: #4e73df; border-radius: 2px; animation: pulseLine 1.5s infinite; }
 @keyframes pulseLine { 0%, 100% { transform: scaleX(1); opacity: 0.8; } 50% { transform: scaleX(1.5); opacity: 0.3; } }
 
-/* ================= TABLE & CONTAINER (BORDERLESS / TANPA KOTAK) ================= */
+/* ================= TABLE & CONTAINER ================= */
 .container { 
     background: transparent; padding: 10px 0; border-radius: 0; box-shadow: none; border: none; 
     width: 100% !important; max-width: 100% !important; margin: 0; display: none; box-sizing: border-box; 
@@ -74,13 +74,13 @@ th:last-child, td:last-child { border-right: none; }
 #momTable td.col-problem { background-color: #fffbeb; } 
 #momTable td.col-remarks { background-color: #eff6ff; } 
 
-/* ================= UKURAN PERSENTASE KOLOM (SUDAH ADA KATEGORI) ================= */
+/* ================= UKURAN PERSENTASE KOLOM ================= */
 .col-remarks { width: 22% !important; white-space: normal; } 
 .col-problem { width: 19% !important; white-space: normal; } 
 .col-matters { width: 16% !important; white-space: normal; } 
 .col-no { width: 4% !important; }
 .col-hari { width: 9% !important; }
-.col-kategori { width: 8% !important; } /* KOLOM KATEGORI */
+.col-kategori { width: 8% !important; } 
 .col-tanggal, .col-pic, .col-epc, .col-due, .col-done, .col-aging, .col-status { width: 8% !important; }
 #colDelete { width: 6% !important; }
 
@@ -98,24 +98,24 @@ table textarea { resize: none; overflow: hidden; min-height: 45px; display: bloc
 
 /* WARNA STATUS */
 .status-open { background: #e74c3c !important; }
-.status-open select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
+#momTable .status-open select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
 .status-open select option { color: black; background: white; }
 
 .status-process { background: #f1c40f !important; }
-.status-process select { background: transparent !important; color: black !important; font-weight: bold; border: none !important; }
+#momTable .status-process select { background: transparent !important; color: black !important; font-weight: bold; border: none !important; }
 .status-process select option { color: black; background: white; }
 
 .status-close { background: #2ecc71 !important; }
-.status-close select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
+#momTable .status-close select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
 .status-close select option { color: black; background: white; }
 
-/* WARNA KATEGORI (RETENSI / NON RETENSI) */
-.kat-retensi { background-color: #8e44ad !important; } 
-.kat-retensi select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
+/* WARNA KATEGORI (PASTEL LEMBUT AGAR TULISAN HITAM TERBACA JELAS) */
+.kat-retensi { background-color: #d2b4de !important; } /* Ungu Pastel Lembut */
+#momTable .kat-retensi select { background: transparent !important; color: #000000 !important; font-weight: bold; border: none !important; }
 .kat-retensi select option { color: black; background: white; }
 
-.kat-non { background-color: #34495e !important; }
-.kat-non select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
+.kat-non { background-color: #aed6f1 !important; } /* Biru Pastel Lembut */
+#momTable .kat-non select { background: transparent !important; color: #000000 !important; font-weight: bold; border: none !important; }
 .kat-non select option { color: black; background: white; }
 
 /* ================= TOMBOL DAN STATS ================= */
@@ -201,3 +201,4 @@ table textarea { resize: none; overflow: hidden; min-height: 45px; display: bloc
 ::-webkit-scrollbar-thumb:hover {
     background: #64748b; 
 }
+
