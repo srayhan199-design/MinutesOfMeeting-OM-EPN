@@ -157,7 +157,7 @@ window.applyFilters = function() {
     trs.forEach(r => {
         let sVal = "";
         let kVal = ""; // Nilai Kategori
-        
+
         // Ambil Nilai Status
         let statusTd = r.querySelector(".col-status select");
         if (statusTd) { sVal = statusTd.value; } 
@@ -168,7 +168,7 @@ window.applyFilters = function() {
 
         let matchStatus = (currentStatusFilter === 'all' || sVal === currentStatusFilter);
         let matchKategori = (currentKategoriFilter === 'Semua' || kVal === currentKategoriFilter);
-        
+
         let textContent = "";
         r.querySelectorAll("input, textarea, select").forEach(el => textContent += el.value.toLowerCase() + " ");
         r.querySelectorAll("div, span").forEach(el => textContent += el.innerText.toLowerCase() + " ");
@@ -261,7 +261,7 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
         teksHari = `${window.day}\n(${tanggalAsli})`; 
     }
 
-    // --- TAMBAHAN KOLOM KATEGORI DI SEBELAH STATUS ---
+    // --- TABEL STRUKTUR DI SINI DIPASTIKAN URUTANNYA BENAR ---
     row.innerHTML = `
         <td class="col-no"><input class="no" readonly style="background:transparent; border:none; text-align:center; font-weight:bold; font-size:16px; width:100%;"></td>
         <td class="col-hari"><textarea class="cell-hari" readonly style="background:transparent; border:none; text-align:center; width:100%; resize:none; overflow:hidden;" oninput="autoHeight(this)">${teksHari}</textarea></td>
@@ -274,13 +274,16 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
         <td class="col-done"><input type="date" onchange="aging(this)"></td>
         <td class="col-aging"><span style="font-weight:bold; color:#495057;"></span></td>
         <td class="col-status"><select onchange="setStatus(this)"><option></option><option value="open">Open</option><option value="process">Process</option><option value="close">Close</option></select></td>
+        
         <td class="col-kategori"><select onchange="setKategori(this)"><option></option><option value="Retensi">Retensi</option><option value="Non Retensi">Non Retensi</option></select></td>
+        
         <td class="col-remarks"><textarea oninput="autoHeight(this)"></textarea></td>
+        
         <td class="col-del" style="white-space:nowrap;">
-            <button onclick="tambahSub(this)" style="color:#2ecc71; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px; margin-right:5px;">➕</button>
             <button onclick="hapusBaris(this)" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px;">✖</button>
         </td>
     `;
+    
     if (referenceRow) { tbody.insertBefore(row, referenceRow.nextSibling); } 
     else { tbody.appendChild(row); }
     window.updateNomor(); 
