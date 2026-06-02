@@ -166,8 +166,9 @@ window.applyFilters = function() {
         let kategoriTd = r.querySelector(".col-kategori select");
         if(kategoriTd) { kVal = kategoriTd.value; }
 
-        let matchStatus = (currentStatusFilter === 'all' || sVal === currentStatusFilter);
-        let matchKategori = (currentKategoriFilter === 'Semua' || kVal === currentKategoriFilter);
+        // PERBAIKAN: Menggunakan .toLowerCase() agar tidak sensitif huruf besar/kecil (Case Insensitive)
+        let matchStatus = (currentStatusFilter === 'all' || sVal.toLowerCase() === currentStatusFilter.toLowerCase());
+        let matchKategori = (currentKategoriFilter === 'Semua' || kVal.toLowerCase() === currentKategoriFilter.toLowerCase());
 
         let textContent = "";
         r.querySelectorAll("input, textarea, select").forEach(el => textContent += el.value.toLowerCase() + " ");
@@ -212,13 +213,23 @@ window.updateNomor = function() {
     }
 }
 
+// PERBAIKAN: Mengganti row.cells berbasis nomor urut menjadi querySelector Class agar anti eror saat kolom bergeser
 window.aging = function(el) {
     let row = el.closest("tr");
-    let tglVal = row.cells[4].querySelector("input").value;      
-    let dueVal = row.cells[7].querySelector("input").value;      
-    let selesaiVal = row.cells[8].querySelector("input").value;  
-    let statusVal = row.cells[10].querySelector("select").value; 
-    let agingSpan = row.cells[9].querySelector("span");
+    if (!row) return;
+
+    let tglInput = row.querySelector(".col-tanggal input");
+    let dueInput = row.querySelector(".col-due input");
+    let selesaiInput = row.querySelector(".col-done input");
+    let statusSelect = row.querySelector(".col-status select");
+    let agingSpan = row.querySelector(".col-aging span");
+
+    if (!agingSpan) return;
+
+    let tglVal = tglInput ? tglInput.value : "";
+    let dueVal = dueInput ? dueInput.value : "";
+    let selesaiVal = selesaiInput ? selesaiInput.value : "";
+    let statusVal = statusSelect ? statusSelect.value : "";
 
     if (!tglVal && !dueVal) { agingSpan.innerText = ""; return; }
     let pembandingDate = selesaiVal ? new Date(selesaiVal) : new Date();
@@ -228,7 +239,7 @@ window.aging = function(el) {
         let dueDate = new Date(dueVal); dueDate.setHours(0,0,0,0);
         let diffDays = Math.floor((dueDate - pembandingDate) / (1000 * 60 * 60 * 24));
         agingSpan.innerText = diffDays;
-        agingSpan.style.color = (diffDays < 0 && statusVal !== "close") ? "red" : "#495057";
+        agingSpan.style.color = (diffDays < 0 && statusVal.toLowerCase() !== "close") ? "red" : "#495057";
     } else if (tglVal) {
         let startDate = new Date(tglVal); startDate.setHours(0,0,0,0);
         let diffDays = Math.floor((pembandingDate - startDate) / (1000 * 60 * 60 * 24));
@@ -261,7 +272,7 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
         teksHari = `${window.day}\n(${tanggalAsli})`; 
     }
 
-    // --- TABEL STRUKTUR DI SINI DIPASTIKAN URUTANNYA BENAR ---
+    // --- SUSUNAN STRUKTUR KOLOM LENGKAP & BERURUTAN SECARA AMAN ---
     row.innerHTML = `
         <td class="col-no"><input class="no" readonly style="background:transparent; border:none; text-align:center; font-weight:bold; font-size:16px; width:100%;"></td>
         <td class="col-hari"><textarea class="cell-hari" readonly style="background:transparent; border:none; text-align:center; width:100%; resize:none; overflow:hidden;" oninput="autoHeight(this)">${teksHari}</textarea></td>
@@ -274,16 +285,12 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
         <td class="col-done"><input type="date" onchange="aging(this)"></td>
         <td class="col-aging"><span style="font-weight:bold; color:#495057;"></span></td>
         <td class="col-status"><select onchange="setStatus(this)"><option></option><option value="open">Open</option><option value="process">Process</option><option value="close">Close</option></select></td>
-        
         <td class="col-kategori"><select onchange="setKategori(this)"><option></option><option value="Retensi">Retensi</option><option value="Non Retensi">Non Retensi</option></select></td>
-        
         <td class="col-remarks"><textarea oninput="autoHeight(this)"></textarea></td>
-        
         <td class="col-del" style="white-space:nowrap;">
             <button onclick="hapusBaris(this)" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px;">✖</button>
         </td>
     `;
-    
     if (referenceRow) { tbody.insertBefore(row, referenceRow.nextSibling); } 
     else { tbody.appendChild(row); }
     window.updateNomor(); 
@@ -417,7 +424,6 @@ window.exportKePDF = function() {
 
     let rows = [];
     document.querySelectorAll("#momTable tbody tr").forEach(tr => {
-        // Abaikan baris yang sedang difilter
         if (tr.style.display === "none") return;
 
         let rowData = [];
@@ -457,7 +463,7 @@ window.exportKePDF = function() {
         columnStyles: { 
             0: { cellWidth: 8 }, 
             1: { cellWidth: 20 },
-            11: { cellWidth: 15 } // Kolom Kategori di PDF
+            11: { cellWidth: 15 } 
         }
     });
 
@@ -467,7 +473,6 @@ window.exportKePDF = function() {
     let yyyy = hariIni.getFullYear();
     let formatTanggal = dd + '-' + mm + '-' + yyyy; 
 
-    // Tambahkan Label Filter di Nama File Jika Ada Filter
     let namaKategori = "";
     if(currentKategoriFilter === "Retensi") namaKategori = "_RETENSI";
     if(currentKategoriFilter === "Non Retensi") namaKategori = "_NON_RETENSI";
@@ -490,7 +495,6 @@ window.exportKeExcel = function() {
         let oriTr = oriRows[i];
         let cloneTr = cloneRows[i];
 
-        // Abaikan baris yang sedang difilter
         if (oriTr.style.display === "none") {
             cloneTr.parentNode.removeChild(cloneTr);
             continue;
@@ -514,7 +518,6 @@ window.exportKeExcel = function() {
                     let teksPilihan = input.options[input.selectedIndex] ? input.options[input.selectedIndex].text : "";
                     cloneCell.innerText = teksPilihan;
 
-                    // Logika Warna Excel
                     if(teksPilihan.toLowerCase() === "open") cloneCell.style.backgroundColor = "#e74c3c"; 
                     if(teksPilihan.toLowerCase() === "process") cloneCell.style.backgroundColor = "#f1c40f"; 
                     if(teksPilihan.toLowerCase() === "close") cloneCell.style.backgroundColor = "#2ecc71"; 
@@ -558,7 +561,6 @@ window.exportKeExcel = function() {
     let yyyy = hariIni.getFullYear();
     let formatTanggal = dd + '-' + mm + '-' + yyyy;
 
-    // Tambahkan Label Filter di Nama File
     let namaKategori = "";
     if(currentKategoriFilter === "Retensi") namaKategori = "_RETENSI";
     if(currentKategoriFilter === "Non Retensi") namaKategori = "_NON_RETENSI";
