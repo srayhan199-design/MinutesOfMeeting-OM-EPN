@@ -1,528 +1,283 @@
-// ================= VARIABEL GLOBAL =================
-window.tahun = "2026";
-window.month = "";
-window.week = "";
-window.day = "";
-window.isSummaryMode = false;
-let currentStatusFilter = 'all'; 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, set, get, child, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// SABTU MINGGU SUDAH MASUK
-const urutanHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
-const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-
-// ================= OTAK KALENDER SUPER PINTAR =================
-window.generateCalendar = function(tahun, bulan) {
-    let gBulan = urutanBulan.indexOf(bulan);
-    let gTahun = parseInt(tahun);
-    if (gBulan === -1 || isNaN(gTahun)) return null;
-
-    let jumlahHari = new Date(gTahun, gBulan + 1, 0).getDate();
-    let rawWeeks = {};
-    let currW = 1;
-
-    for (let d = 1; d <= jumlahHari; d++) {
-        let dayOfWeek = new Date(gTahun, gBulan, d).getDay(); 
-        
-        if (dayOfWeek === 1 && d !== 1) {
-            currW++;
-        }
-        
-        // Membaca seluruh hari 0-6 (Minggu - Sabtu)
-        if (!rawWeeks[currW]) rawWeeks[currW] = {};
-        let arrayNamaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-        let namaH = arrayNamaHari[dayOfWeek];
-        rawWeeks[currW][namaH] = d;
-    }
-
-    let finalWeeks = {};
-    let idx = 1;
-    for (let wKey in rawWeeks) {
-        finalWeeks[idx] = rawWeeks[wKey];
-        idx++;
-    }
-    return finalWeeks; 
+const firebaseConfig = {
+    apiKey: "AIzaSyABsU8Z9wzzzAPHk-5eB6HV2tcsRYGsC2w",
+    authDomain: "data-minutes-of-meeting.firebaseapp.com",
+    databaseURL: "https://data-minutes-of-meeting-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "data-minutes-of-meeting",
+    storageBucket: "data-minutes-of-meeting.firebasestorage.app",
+    messagingSenderId: "766106710249",
+    appId: "1:766106710249:web:569025628323eeb3460078"
 };
 
-// ================= VARIABEL UNDO HAPUS =================
-let rowYangDihapus = null;
-let posisiRow = null;
-let timerUndo = null;
+const app = initializeApp(firebaseConfig);
+export const db = getDatabase(app);
+export const auth = getAuth(app); 
 
-window.hapusBaris = function(btn) {
-    if (confirm("Apakah Anda yakin akan menghapus baris ini?")) {
-        let row = btn.closest('tr');
-        let tbody = row.parentNode;
-        rowYangDihapus = row;
-        posisiRow = row.nextSibling;
-        tbody.removeChild(row);
-        window.updateNomor(); 
+onAuthStateChanged(auth, (user) => {
+    const loginScreen = document.getElementById("loginScreen");
+    const toolbar = document.querySelector(".toolbar");
+    const mainApp = document.querySelector(".main");
 
-        let toast = document.getElementById("undoToast");
-        if(toast) {
-            toast.innerHTML = `Baris berhasil dihapus. <button class="undo-btn" onclick="batalHapus()">Batalkan</button>`;
-            toast.classList.add("show");
-        }
+    if (user) {
+        if(loginScreen) loginScreen.style.display = "none";
+        if(toolbar) toolbar.style.display = "flex";
+        if(mainApp) mainApp.style.display = "flex";
 
-        clearTimeout(timerUndo);
-        timerUndo = setTimeout(() => { if(toast) toast.classList.remove("show"); rowYangDihapus = null; }, 7000);
-    }
-}
-
-window.batalHapus = function() {
-    if (rowYangDihapus) {
-        let tbody = document.querySelector("#momTable tbody");
-        tbody.insertBefore(rowYangDihapus, posisiRow);
-        window.updateNomor(); 
-        let toast = document.getElementById("undoToast");
-        if (toast) toast.classList.remove("show");
-        rowYangDihapus = null;
-        clearTimeout(timerUndo);
-    }
-}
-
-window.hapusSemuaDataTabel = function() {
-    if (confirm("🚨 PERINGATAN! Apakah Anda yakin ingin mengosongkan SEMUA baris di tabel ini?")) {
-        let tbody = document.querySelector("#momTable tbody");
-        tbody.innerHTML = ""; 
-        window.tambah(); 
-        window.updateNomor();
-        alert("Semua baris telah dikosongkan. Jangan lupa klik 'Simpan ke Cloud' untuk memperbarui database.");
-    }
-}
-
-// ================= UI HELPER =================
-window.bukaLightbox = function(src, komentar) {
-    document.getElementById('lightbox').style.display = 'block';
-    document.getElementById('lightboxImg').src = src;
-    document.getElementById('lightboxCaption').innerHTML = komentar || '';
-}
-window.tutupLightbox = function() { document.getElementById('lightbox').style.display = 'none'; }
-
-window.toggleUploadForm = function() {
-    let form = document.getElementById("formUploadFoto");
-    let btnToggle = document.getElementById("btnToggleUpload");
-    if (form.style.display === "none" || form.style.display === "") {
-        form.style.display = "flex"; btnToggle.style.display = "none"; 
+        get(ref(db, 'MOM_LastUpdate')).then((snap) => {
+            let lastDate = snap.exists() ? snap.val() : "Belum ada data tersimpan";
+            let modal = document.getElementById("reminderModal");
+            let txt = document.getElementById("lastUpdateText");
+            if (modal && txt) {
+                txt.innerText = lastDate;
+                modal.style.display = "flex";
+            }
+        }).catch(err => console.error(err));
+        
+        // Memuat data otomatis saat login berhasil
+        if(typeof loadHariIni === "function") loadHariIni();
     } else {
-        form.style.display = "none"; btnToggle.style.display = "inline-block"; 
+        if(loginScreen) loginScreen.style.display = "flex";
+        if(toolbar) toolbar.style.display = "none";
+        if(mainApp) mainApp.style.display = "none";
     }
-}
+});
 
-window.toggleMonthList = function() {
-    let container = document.getElementById("monthListContainer");
-    container.style.display = (container.style.display === "block") ? "none" : "block";
-}
-window.gantiTahun = function() {
-    window.tahun = document.getElementById("selectTahun").value;
-    document.getElementById("btnYear").innerText = window.tahun; 
-    window.home(); 
-}
-window.triggerFade = function(id) {
-    let el = document.getElementById(id);
-    if(!el) return; el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
-}
-window.autoHeight = function(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
+window.prosesLogin = function() {
+    const email = document.getElementById("emailInput").value;
+    const pass = document.getElementById("passwordInput").value;
+    const btnLogin = document.querySelector(".login-box button");
+    const errorText = document.getElementById("loginError");
 
-window.resetDisplay = function() {
-    document.getElementById("homeText").style.display = "none";
-    document.getElementById("weekMenu").style.display = "none";
-    document.getElementById("dayMenu").style.display = "none";
-    document.getElementById("momContainer").style.display = "none";
-    document.getElementById("statContainer").style.display = "none";
-    document.getElementById("kegiatanContainer").style.display = "none";
-    document.getElementById("searchInput").value = "";
-    currentStatusFilter = "all";
-    document.getElementById("colDelete").style.display = "table-cell";
-}
-
-window.home = function() { 
-    window.isSummaryMode = false; window.resetDisplay();
-    document.getElementById("homeText").style.display = "block";
-    document.querySelectorAll(".toolbar button").forEach(btn => btn.classList.remove("active-month"));
-    window.triggerFade("homeText");
-}
-
-// ================= FILTER & SEARCH =================
-window.cariData = function() { window.applyFilters(); }
-window.filterGlobal = function(status) { currentStatusFilter = status; window.applyFilters(); }
-
-window.applyFilters = function() {
-    let keyword = document.getElementById("searchInput").value.toLowerCase();
-    let trs = document.querySelectorAll("#momTable tbody tr");
-
-    trs.forEach(r => {
-        let sVal = "";
-        let selectEl = r.querySelector(".col-status select");
-        if (selectEl) { sVal = selectEl.value; } 
-
-        let matchStatus = (currentStatusFilter === 'all' || sVal.toLowerCase() === currentStatusFilter.toLowerCase());
-        let textContent = "";
-        r.querySelectorAll("input, textarea, select").forEach(el => textContent += el.value.toLowerCase() + " ");
-        r.querySelectorAll("div, span").forEach(el => textContent += el.innerText.toLowerCase() + " ");
-        let matchSearch = textContent.includes(keyword);
-
-        if (matchStatus && matchSearch) { r.style.display = "table-row"; } else { r.style.display = "none"; }
+    if(!email || !pass) { errorText.innerText = "Isi Email dan Password!"; errorText.style.display = "block"; return; }
+    btnLogin.innerText = "Mengecek...";
+    signInWithEmailAndPassword(auth, email, pass).then(() => {
+        errorText.style.display = "none"; btnLogin.innerText = "Login";
+        document.getElementById("emailInput").value = ""; document.getElementById("passwordInput").value = "";
+    }).catch(() => {
+        errorText.innerText = "Gagal! Cek email & password."; errorText.style.display = "block"; btnLogin.innerText = "Login";
     });
-    window.updateNomor();
-}
+};
 
-// ================= CORE TABLE LOGIC =================
-window.updateNomor = function() {
-    let idx = 1;
-    let trs = Array.from(document.querySelectorAll("#momTable tbody tr"));
-    trs.forEach(r => { let colNo = r.querySelector(".col-no"); if (colNo) { colNo.style.display = "table-cell"; colNo.rowSpan = 1; } });
-    let visibleTrs = trs.filter(r => r.style.display !== "none");
+window.prosesLogout = function() {
+    if(confirm("Yakin ingin keluar?")) {
+        signOut(auth).then(() => { alert("Logout Berhasil!"); if(typeof window.home === "function") window.home(); }).catch((error) => console.error(error));
+    }
+};
 
-    for (let i = 0; i < visibleTrs.length; i++) {
-        let r = visibleTrs[i];
-        let colNo = r.querySelector(".col-no");
-        if (!colNo) continue;
-
-        if (r.classList.contains("sub-row")) {
-            let prevMainIndex = i - 1;
-            while(prevMainIndex >= 0 && visibleTrs[prevMainIndex].classList.contains("sub-row")) { prevMainIndex--; }
-
-            if (prevMainIndex >= 0) {
-                colNo.style.display = "none";
-                let parentColNo = visibleTrs[prevMainIndex].querySelector(".col-no");
-                parentColNo.rowSpan = parentColNo.rowSpan + 1;
-            }
-        } else {
-            colNo.style.display = "table-cell"; colNo.rowSpan = 1;
-            let noInput = colNo.querySelector(".no");
-            if(noInput) { noInput.value = idx++; } else { let div = colNo.querySelector("div"); if(div) div.innerText = idx++; }
+function parseGroups(rawData) {
+    let groups = []; let currentGroup = null;
+    if(!rawData || !Array.isArray(rawData)) return groups;
+    rawData.forEach(d => {
+        if (d[0] !== "-") { 
+            let key = d[2] ? d[2].toString().toLowerCase().replace(/[^a-z0-9]/g, '') : Math.random().toString();
+            currentGroup = { key: key, items: [d], hasActive: (d[10] === "open" || d[10] === "process") };
+            groups.push(currentGroup);
+        } else { 
+            if (currentGroup) { currentGroup.items.push(d); if (d[10] === "open" || d[10] === "process") currentGroup.hasActive = true; }
         }
+    });
+    return groups;
+}
+
+const urutanBulanLokal = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const urutanMingguLokal = ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4", "Minggu 5"]; 
+const urutanHariLokal = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+
+window.getHariSebelumnya = function(y, m, w, d) {
+    let yIdx = parseInt(y); let mIdx = urutanBulanLokal.indexOf(m); let wIdx = urutanMingguLokal.indexOf(w); let dIdx = urutanHariLokal.indexOf(d);
+    dIdx--; 
+    if (dIdx < 0) {
+        dIdx = 6; wIdx--; // 6 karena sekarang sampai Minggu
+        if (wIdx < 0) { wIdx = 4; mIdx--; if (mIdx < 0) { mIdx = 11; yIdx--; } } 
     }
+    return { y: yIdx.toString(), m: urutanBulanLokal[mIdx], w: urutanMingguLokal[wIdx], d: urutanHariLokal[dIdx] };
 }
 
-window.aging = function(el) {
-    let row = el.closest("tr");
-    if (!row) return;
-
-    let tglInput = row.querySelector(".col-tanggal input");
-    let dueInput = row.querySelector(".col-due input");
-    let selesaiInput = row.querySelector(".col-done input");
-    let statusSelect = row.querySelector(".col-status select");
-    let agingSpan = row.querySelector(".col-aging span");
-
-    if (!agingSpan) return;
-
-    let tglVal = tglInput ? tglInput.value : "";
-    let dueVal = dueInput ? dueInput.value : "";
-    let selesaiVal = selesaiInput ? selesaiInput.value : "";
-    let statusVal = statusSelect ? statusSelect.value : "";
-
-    if (!tglVal && !dueVal) { agingSpan.innerText = ""; return; }
-    let pembandingDate = selesaiVal ? new Date(selesaiVal) : new Date();
-    pembandingDate.setHours(0,0,0,0);
-
-    if (dueVal) {
-        let dueDate = new Date(dueVal); dueDate.setHours(0,0,0,0);
-        let diffDays = Math.floor((dueDate - pembandingDate) / (1000 * 60 * 60 * 24));
-        agingSpan.innerText = diffDays;
-        agingSpan.style.color = (diffDays < 0 && statusVal.toLowerCase() !== "close") ? "red" : "#495057";
-    } else if (tglVal) {
-        let startDate = new Date(tglVal); startDate.setHours(0,0,0,0);
-        let diffDays = Math.floor((pembandingDate - startDate) / (1000 * 60 * 60 * 24));
-        agingSpan.innerText = diffDays;
-        agingSpan.style.color = "#495057";
-    }
-}
-
-window.setStatus = function(s) {
-    if(!s) return; s.parentElement.className = "col-status status-" + s.value; window.aging(s);
-}
-
-window.tambah = function(isSubRow = false, referenceRow = null) {
+window.loadHariIni = async function() {
     let tbody = document.querySelector("#momTable tbody");
-    let row = document.createElement("tr");
-    if (isSubRow) row.classList.add("sub-row");
-
-    let tanggalAsli = window.hitungTanggalOtomatis(window.tahun, window.month, window.week, window.day);
-    let teksHari = window.day || ""; 
-
-    if (tanggalAsli && !isSubRow && !window.isSummaryMode) {
-        teksHari = `${window.day}\n(${tanggalAsli})`; 
-    }
-
-    row.innerHTML = `
-        <td class="col-no"><input class="no" readonly style="background:transparent; border:none; text-align:center; font-weight:bold; font-size:16px; width:100%;"></td>
-        <td class="col-hari"><textarea class="cell-hari" readonly style="background:transparent; border:none; text-align:center; width:100%; resize:none; overflow:hidden;" oninput="autoHeight(this)">${teksHari}</textarea></td>
-        <td class="col-matters"><textarea oninput="autoHeight(this)"></textarea></td>
-        <td class="col-problem"><textarea oninput="autoHeight(this)"></textarea></td>
-        <td class="col-tanggal"><input type="date" onchange="aging(this)"></td> 
-        <td class="col-pic"><input></td>
-        <td class="col-epc"><input></td>
-        <td class="col-due"><input type="date" onchange="aging(this)"></td>
-        <td class="col-done"><input type="date" onchange="aging(this)"></td>
-        <td class="col-aging"><span style="font-weight:bold; color:#495057;"></span></td>
-        <td class="col-status"><select onchange="setStatus(this)"><option></option><option value="open">Open</option><option value="process">Process</option><option value="close">Close</option></select></td>
-        <td class="col-remarks"><textarea oninput="autoHeight(this)"></textarea></td>
-        <td class="col-del" style="white-space:nowrap;">
-            <button onclick="hapusBaris(this)" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px;">✖</button>
-        </td>
-    `;
-    if (referenceRow) { tbody.insertBefore(row, referenceRow.nextSibling); } 
-    else { tbody.appendChild(row); }
-    window.updateNomor(); 
-    
-    let ta = row.querySelector('.col-hari textarea');
-    if(ta) window.autoHeight(ta);
-    
-    return row;
-}
-
-window.tambahSub = function(btn) { let parentTr = btn.closest('tr'); window.tambah(true, parentTr); }
-
-// ================= NAVIGASI MENU (BACA KALENDER) =================
-window.pilihBulan = function(b, e) { 
-    window.isSummaryMode = false; 
-    window.month = b; 
-    window.resetDisplay(); 
-    
-    const weekMenu = document.getElementById("weekMenu");
-    weekMenu.style.display = "block"; 
-    
-    weekMenu.innerHTML = `
-        <h2 style="color:#2c3e50; margin-top:0;">Pilih Minggu</h2>
-        <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
-    `;
-
-    let kalender = window.generateCalendar(window.tahun, window.month);
-    let maxMinggu = kalender ? Object.keys(kalender).length : 4; 
-    
-    for (let w = 1; w <= maxMinggu; w++) {
-        let btn = document.createElement("button");
-        btn.className = "weekBtn";
-        btn.innerText = "Minggu " + w;
-        btn.onclick = function() { window.pilihMinggu('Minggu ' + w); };
-        weekMenu.appendChild(btn);
-    }
-
-    window.triggerFade("weekMenu"); 
-    document.querySelectorAll(".toolbar button").forEach(btn => btn.classList.remove("active-month")); 
-    e.classList.add("active-month"); 
-    if(typeof window.loadMonthlySummary === "function") window.loadMonthlySummary(b); 
-}
-
-window.pilihMinggu = function(w) { 
-    window.week = w; 
-    document.getElementById("weekMenu").style.display="none"; 
-    
-    const dayMenu = document.getElementById("dayMenu");
-    dayMenu.innerHTML = `
-        <button class="weekBtn" style="background:#f8d7da; color:#721c24; border-color:#f5c6cb;" onclick="window.kembaliMinggu()">⬅ Kembali ke Minggu</button>
-        <h2 style="color:#2c3e50;">Pilih Hari</h2>
-        <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
-    `;
-
-    let kalender = window.generateCalendar(window.tahun, window.month);
-    let angkaMingguTarget = parseInt(w.replace("Minggu ", ""));
-    let mingguPilihan = kalender ? kalender[angkaMingguTarget] : null;
-
-    if (mingguPilihan) {
-        ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].forEach(hari => {
-            if (mingguPilihan[hari]) { 
-                let btn = document.createElement("button");
-                btn.className = "dayBtn";
-                btn.innerText = `${hari} (${mingguPilihan[hari]})`; 
-                btn.onclick = function() { window.pilihHari(hari); };
-                dayMenu.appendChild(btn);
-            }
-        });
-    }
-
-    dayMenu.style.display="block"; 
-    window.triggerFade("dayMenu"); 
-}
-
-window.pilihHari = function(h) { 
-    window.day = h; window.isSummaryMode = false; 
-    document.getElementById("dayMenu").style.display="none"; 
-    document.getElementById("momContainer").style.display="block"; 
-    window.triggerFade("momContainer"); 
-    document.getElementById("actionButtons").style.display="flex"; 
-    document.getElementById("colDelete").style.display="table-cell"; 
-    document.getElementById("backToDayBtn").onclick = window.kembaliHari; 
-    document.getElementById("judul").innerText = `MOM ${window.tahun} - ${window.month} - ${window.week} - ${window.day}`; 
-    if (typeof window.loadHariIni === 'function') window.loadHariIni(); 
-}
-
-window.kembaliHari = function() { document.getElementById("momContainer").style.display="none"; document.getElementById("dayMenu").style.display="block"; window.triggerFade("dayMenu"); }
-window.kembaliMinggu = function() { document.getElementById("dayMenu").style.display="none"; document.getElementById("weekMenu").style.display="block"; window.triggerFade("weekMenu"); }
-
-window.hitungTanggalOtomatis = function(tahun, bulan, minggu, hari) {
-    let kalender = window.generateCalendar(tahun, bulan);
-    if (!kalender || !minggu || !hari) return "";
-
-    let angkaMingguTarget = parseInt(minggu.replace("Minggu ", ""));
-    let mingguPilihan = kalender[angkaMingguTarget];
-
-    if (!mingguPilihan || !mingguPilihan[hari]) return ""; 
-
-    let gBulan = urutanBulan.indexOf(bulan);
-    let gTahun = parseInt(tahun);
-    let d = mingguPilihan[hari];
-
-    let dd = String(d).padStart(2, '0');
-    let mm = String(gBulan + 1).padStart(2, '0');
-    return `${dd}/${mm}/${gTahun}`;
-};
-
-// ================= FITUR EXPORT KE PDF ==================
-window.exportKePDF = function() {
-    const jspdfLib = window.jspdf;
-    if (!jspdfLib) { alert("Library PDF gagal dimuat!"); return; }
-
-    const { jsPDF } = jspdfLib; const doc = new jsPDF('l', 'mm', 'a4');
-    doc.setFontSize(16); doc.setFont("helvetica", "bold"); doc.text(document.getElementById("judul").innerText, 14, 15);
-
-    let headers = [];
-    document.querySelectorAll("#momTable thead th").forEach(th => {
-        if (th.id !== "colDelete" && th.style.display !== "none") headers.push(th.innerText);
-    });
-
-    let rows = [];
-    document.querySelectorAll("#momTable tbody tr").forEach(tr => {
-        if (tr.style.display === "none") return;
-        let rowData = [];
-        tr.querySelectorAll("td").forEach(td => {
-            if(td.classList.contains("col-del") || td.style.display === "none") return;
-            let val = ""; let input = td.querySelector("input, textarea, select");
-            if (input) val = input.value; else val = td.innerText;
-            rowData.push(val);
-        });
-        if (rowData.length > 0) rows.push(rowData);
-    });
-
-    doc.autoTable({
-        head: [headers], body: rows, startY: 25, theme: 'grid', 
-        styles: { fontSize: 7, cellPadding: 2, valign: 'middle', fontStyle: 'bold', lineWidth: 0.3, lineColor: [0, 0, 0] },
-        headStyles: { fillColor: [44, 62, 80], textColor: 255, halign: 'center', fontStyle: 'bold', lineWidth: 0.3, lineColor: [0, 0, 0] },
-        columnStyles: { 0: { cellWidth: 8 }, 1: { cellWidth: 20 } }
-    });
-
-    let hariIni = new Date(); let dd = String(hariIni.getDate()).padStart(2, '0'); let mm = String(hariIni.getMonth() + 1).padStart(2, '0'); 
-    let formatTanggal = dd + '-' + mm + '-' + hariIni.getFullYear(); 
-    doc.save(window.isSummaryMode ? `MOM_Summary_${window.month}_(${formatTanggal}).pdf` : `MOM_Harian_${window.day}_(${formatTanggal}).pdf`);
-};
-
-// ================= FITUR EXPORT KE EXCEL ==================
-window.exportKeExcel = function() {
-    let table = document.getElementById("momTable");
-    let clone = table.cloneNode(true); 
-    let oriRows = table.querySelectorAll("tr");
-    let cloneRows = clone.querySelectorAll("tr");
-
-    for (let i = 0; i < oriRows.length; i++) {
-        let oriTr = oriRows[i]; let cloneTr = cloneRows[i];
-        if (oriTr.style.display === "none") { cloneTr.parentNode.removeChild(cloneTr); continue; }
-
-        let oriCells = oriTr.querySelectorAll("th, td"); let cloneCells = cloneTr.querySelectorAll("th, td");
-        for (let j = 0; j < oriCells.length; j++) {
-            let oriCell = oriCells[j]; let cloneCell = cloneCells[j];
-            if (oriCell.id === "colDelete" || oriCell.classList.contains("col-del") || oriCell.style.display === "none") {
-                cloneCell.parentNode.removeChild(cloneCell); continue;
-            }
-            let input = oriCell.querySelector("input, textarea, select");
-            if (input) {
-                if (input.tagName === "SELECT") {
-                    let teksStatus = input.options[input.selectedIndex] ? input.options[input.selectedIndex].text : "";
-                    cloneCell.innerText = teksStatus;
-                    if(teksStatus.toLowerCase() === "open") cloneCell.style.backgroundColor = "#e74c3c"; 
-                    if(teksStatus.toLowerCase() === "process") cloneCell.style.backgroundColor = "#f1c40f"; 
-                    if(teksStatus.toLowerCase() === "close") cloneCell.style.backgroundColor = "#2ecc71"; 
-                    cloneCell.style.color = (teksStatus.toLowerCase() === "process") ? "#000" : "#fff"; 
-                } else { cloneCell.innerText = input.value; }
-            } else if (oriCell.querySelector("span")) { cloneCell.innerText = oriCell.querySelector("span").innerText; }
-            cloneCell.style.border = "1px solid #000000"; cloneCell.style.padding = "5px"; cloneCell.style.verticalAlign = "top"; cloneCell.style.whiteSpace = "pre-wrap"; 
+    tbody.innerHTML = "<tr><td colspan='13' style='color:blue; padding:20px;'>Sinkronisasi data dari cloud...</td></tr>";
+    try {
+        const currentSnap = await get(child(ref(db), `MOM/${window.tahun}/${window.month}/${window.week}/${window.day}`));
+        tbody.innerHTML = "";
+        
+        if (currentSnap.exists()) {
+            currentSnap.val().forEach(d => {
+                let row = typeof window.tambah === "function" ? window.tambah(d[0] === "-") : tambah(d[0] === "-"); 
+                
+                // PENGISIAN DATA AMAN TANPA LOOPING INDEKS
+                row.querySelector(".col-hari textarea").value = d[1] || "";
+                row.querySelector(".col-matters textarea").value = d[2] || "";
+                row.querySelector(".col-problem textarea").value = d[3] || "";
+                row.querySelector(".col-tanggal input").value = d[4] || "";
+                row.querySelector(".col-pic input").value = d[5] || "";
+                row.querySelector(".col-epc input").value = d[6] || "";
+                row.querySelector(".col-due input").value = d[7] || "";
+                row.querySelector(".col-done input").value = d[8] || "";
+                row.querySelector(".col-aging span").innerText = d[9] || "";
+                row.querySelector(".col-status select").value = d[10] || "open";
+                row.querySelector(".col-remarks textarea").value = d[11] || ""; // REMARKS AMAN DI NOMOR 11
+                
+                if(typeof window.setStatus === "function") window.setStatus(row.querySelector("select"));
+                row.querySelectorAll("textarea").forEach(ta => autoHeight(ta));
+            });
+        } else {
+            if(typeof window.tambah === "function") window.tambah(); else tambah();
         }
-    }
-
-    let htmlTemplate = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; } th { background-color: #2c3e50; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #000000; padding: 8px;} td { border: 1px solid #000000; vertical-align: top; white-space: pre-wrap; }</style></head><body><h2 style="text-align: center; color: #2c3e50;">${document.getElementById("judul").innerText}</h2>${clone.outerHTML}</body></html>`;
-    let hariIni = new Date(); let dd = String(hariIni.getDate()).padStart(2, '0'); let mm = String(hariIni.getMonth() + 1).padStart(2, '0');
-    let formatTanggal = dd + '-' + mm + '-' + hariIni.getFullYear();
-    let blob = new Blob([htmlTemplate], { type: 'application/vnd.ms-excel' });
-    let a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-    a.download = window.isSummaryMode ? `MOM_Summary_${window.month}_(${formatTanggal}).xls` : `MOM_Harian_${window.day}_(${formatTanggal}).xls`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        window.updateNomor();
+    } catch (error) { tbody.innerHTML = "<tr><td colspan='13' style='color:red;'>Gagal memuat data MOM.</td></tr>"; }
 };
 
-// ================= FITUR FOTO KEGIATAN =================
-window.loadKegiatan = function() {
+window.tarikDataKemarin = async function() {
+    let prev = window.getHariSebelumnya(window.tahun, window.month, window.week, window.day);
+    if (parseInt(prev.y) < 2025) { alert("Tidak ada data sebelum tahun 2025."); return; }
     try {
-        window.isSummaryMode = false; if(typeof window.resetDisplay === "function") window.resetDisplay();
-        document.getElementById("kegiatanContainer").style.display = "block";
-        document.getElementById("formUploadFoto").style.display = "none";
-        document.getElementById("btnToggleUpload").style.display = "inline-block";
-        window.triggerFade("kegiatanContainer"); window.fetchFoto('Semua');
-    } catch (error) { console.error(error.message); }
-}
-
-window.fetchFoto = async function(filterKategori = 'Semua') {
-    try {
-        document.querySelectorAll('#filterKegiatanContainer .stat-box').forEach(btn => {
-            btn.style.opacity = "0.5"; btn.style.transform = "scale(0.95)"; btn.style.boxShadow = "none";
-            if (btn.innerText.includes(filterKategori) || (filterKategori === 'Semua' && btn.innerText.includes('Semua'))) {
-                btn.style.opacity = "1"; btn.style.transform = "scale(1.05)"; btn.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
-            }
-        });
-
-        const gallery = document.getElementById("galleryContainer"); gallery.innerHTML = "<p>Memuat foto kegiatan...</p>";
-        const snap = await get(ref(db, `Kegiatan`)); gallery.innerHTML = ""; let hasPhoto = false;
-
+        const snap = await get(child(ref(db), `MOM/${prev.y}/${prev.m}/${prev.w}/${prev.d}`));
         if (snap.exists()) {
-            const data = snap.val();
-            ["Lapangan", "Meeting", "Bebas"].forEach(kat => {
-                if (filterKategori !== 'Semua' && filterKategori !== kat) return;
-                if (data[kat]) {
-                    Object.keys(data[kat]).reverse().forEach(key => {
-                        if(kat === 'Gallery') return; hasPhoto = true;
-                        let imgData = data[kat][key];
-                        let imgSrc = typeof imgData === 'string' ? imgData : imgData.image; 
-                        let imgComment = typeof imgData === 'string' ? "" : (imgData.comment || "");
-                        let safeComment = imgComment.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '<br>');
+            let groups = parseGroups(snap.val()); let hasCarry = false;
+            let existingKeys = [];
+            document.querySelectorAll("#momTable tbody tr").forEach(tr => {
+                if(tr.style.display === "none" || tr.cells.length <= 1) return;
+                let textMatter = tr.querySelector(".col-matters textarea") ? tr.querySelector(".col-matters textarea").value.toLowerCase().replace(/[^a-z0-9]/g, '') : "";
+                existingKeys.push(textMatter);
+            });
+            groups.forEach(g => {
+                if (g.hasActive) {
+                    let kMatter = g.items[0][2] ? g.items[0][2].toString().toLowerCase().replace(/[^a-z0-9]/g, '') : "";
+                    if (!existingKeys.includes(kMatter) || kMatter === "") {
+                        hasCarry = true;
+                        g.items.forEach(d => {
+                            let row = typeof window.tambah === "function" ? window.tambah(d[0] === "-") : tambah(d[0] === "-"); 
+                            
+                            row.querySelector(".col-hari textarea").value = d[1] || "";
+                            row.querySelector(".col-matters textarea").value = d[2] || "";
+                            row.querySelector(".col-problem textarea").value = d[3] || "";
+                            row.querySelector(".col-tanggal input").value = d[4] || "";
+                            row.querySelector(".col-pic input").value = d[5] || "";
+                            row.querySelector(".col-epc input").value = d[6] || "";
+                            row.querySelector(".col-due input").value = d[7] || "";
+                            row.querySelector(".col-done input").value = d[8] || "";
+                            row.querySelector(".col-aging span").innerText = d[9] || "";
+                            row.querySelector(".col-status select").value = d[10] || "open";
+                            row.querySelector(".col-remarks textarea").value = d[11] || "";
+                            
+                            if(typeof window.setStatus === "function") window.setStatus(row.querySelector("select")); 
+                            row.querySelectorAll("textarea").forEach(ta => autoHeight(ta));
+                        });
+                    }
+                }
+            });
+            if (hasCarry) { alert(`Tugas ditarik dari hari ${prev.d}!`); window.updateNomor(); } else { alert(`Sudah ditarik semua.`); }
+        } else { alert(`Tidak ada rekaman di hari ${prev.d}.`); }
+    } catch (err) { alert("Gagal terhubung ke Cloud."); }
+};
 
-                        const card = document.createElement("div"); card.className = "photo-card";
-                        card.innerHTML = `<div class="photo-img-wrapper"><img src="${imgSrc}" loading="lazy" onclick="window.bukaLightbox(this.src, '${safeComment}');"><span class="photo-category-badge">${kat}</span><button class="del-photo-btn" onclick="hapusFoto('${kat}', '${key}')">✖</button></div>${imgComment ? `<div class="photo-comment">${imgComment.replace(/\n/g, '<br>')}</div>` : ''}`;
-                        gallery.appendChild(card);
+window.loadMonthlySummary = async function(targetMonth) {
+    window.isSummaryMode = true; 
+    if (typeof window.resetDisplay === "function") window.resetDisplay(); 
+    document.getElementById("momContainer").style.display = "block";
+    document.getElementById("actionButtons").style.display = "none"; 
+    document.getElementById("judul").innerText = `SUMMARY BULAN ${targetMonth.toUpperCase()} ${window.tahun || "2026"}`;
+    document.getElementById("colDelete").style.display = "none";
+
+    let statCont = document.getElementById("statContainer");
+    if(statCont) statCont.style.display = "flex";
+
+    let tbody = document.querySelector("#momTable tbody");
+    tbody.innerHTML = "<tr><td colspan='13' style='color:blue; padding:20px; text-align:center;'>Sedang merangkum data...</td></tr>";
+
+    try {
+        const snapshot = await get(ref(db, `MOM/${window.tahun || "2026"}/${targetMonth}`));
+        let saringanData = {}; let cOpen = 0, cProcess = 0, cClose = 0;
+
+        if (snapshot.exists()) {
+            const dataBulanIni = snapshot.val(); 
+
+            urutanMingguLokal.forEach(minggu => {
+                if(dataBulanIni[minggu]) {
+                    urutanHariLokal.forEach(hari => {
+                        if(dataBulanIni[minggu][hari]) {
+                            dataBulanIni[minggu][hari].forEach(d => {
+                                let matters = d[2] || ""; let problem = d[3] || "";
+                                if (!matters) return;
+                                let kunciUnik = matters.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, '') + "_" + problem.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+
+                                let copyD = [...d];
+                                if (d[0] !== "-") { 
+                                    let valHari = d[1] || "";
+                                    if (!valHari.includes("(")) {
+                                        let tglOtomatis = window.hitungTanggalOtomatis(window.tahun || "2026", targetMonth, minggu, hari);
+                                        if (tglOtomatis) {
+                                            copyD[1] = `${hari}\n(${tglOtomatis})`;
+                                            let splitTgl = tglOtomatis.split('/');
+                                            copyD[4] = `${splitTgl[2]}-${splitTgl[1]}-${splitTgl[0]}`; 
+                                        }
+                                    }
+                                }
+                                saringanData[kunciUnik] = copyD; 
+                            });
+                        }
                     });
                 }
             });
-        } 
-        if (!hasPhoto) gallery.innerHTML = `<p style='padding: 20px;'>Belum ada foto.</p>`;
-    } catch (err) { console.error(err); }
-}
 
-window.uploadFoto = function() {
-    const files = document.getElementById("fotoInput").files;
-    const kategori = document.getElementById("kategoriFoto").value; const komentar = document.getElementById("fotoKomentar").value; 
-    if (files.length === 0) { alert("Pilih foto terlebih dahulu!"); return; }
+            tbody.innerHTML = ""; let dataTerbaru = Object.values(saringanData); let cTotal = dataTerbaru.length;
 
-    const btnUpload = document.querySelector("#formUploadFoto button.add-btn");
-    const btnOriginalText = btnUpload.innerText; btnUpload.innerText = "⏳ Uploading..."; btnUpload.disabled = true;
-
-    Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const img = new Image(); img.src = e.target.result;
-            img.onload = async function() {
-                const canvas = document.createElement("canvas");
-                const scaleSize = 1000 / img.width; canvas.width = 1000; canvas.height = img.height * scaleSize;
-                const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                try {
-                    await push(ref(db, `Kegiatan/${kategori}`), { image: canvas.toDataURL("image/jpeg", 0.75), comment: komentar });
-                    window.toggleUploadForm(); window.fetchFoto('Semua'); 
-                } catch (err) { alert("Gagal upload foto."); } finally { btnUpload.innerText = btnOriginalText; btnUpload.disabled = false; }
+            if (cTotal === 0) {
+                tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Tidak ada pekerjaan di bulan ini.</td></tr>";
+                ["countOpen", "countProcess", "countClose", "countTotal"].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = 0; });
+                return;
             }
-        }
-        reader.readAsDataURL(file);
-    });
-}
 
-window.hapusFoto = async function(kategori, key) {
-    if(event) event.stopPropagation();
-    if (confirm(`Yakin hapus foto ${kategori}?`)) {
-        try { await remove(ref(db, `Kegiatan/${kategori}/${key}`)); window.fetchFoto('Semua'); } catch(err) { alert("Gagal hapus."); }
-    }
-}
+            dataTerbaru.forEach(d => {
+                let statusVal = d[10] ? d[10].toLowerCase() : "";
+                if (statusVal === "open") cOpen++; else if (statusVal === "process") cProcess++; else if (statusVal === "close") cClose++;
+                let row = typeof window.tambah === "function" ? window.tambah(d[0] === "-") : tambah(d[0] === "-"); 
+                
+                row.querySelector(".col-hari textarea").value = d[1] || "";
+                row.querySelector(".col-matters textarea").value = d[2] || "";
+                row.querySelector(".col-problem textarea").value = d[3] || "";
+                row.querySelector(".col-tanggal input").value = d[4] || "";
+                row.querySelector(".col-pic input").value = d[5] || "";
+                row.querySelector(".col-epc input").value = d[6] || "";
+                row.querySelector(".col-due input").value = d[7] || "";
+                row.querySelector(".col-done input").value = d[8] || "";
+                row.querySelector(".col-aging span").innerText = d[9] || "";
+                row.querySelector(".col-status select").value = d[10] || "open";
+                row.querySelector(".col-remarks textarea").value = d[11] || "";
+                
+                if (typeof window.setStatus === "function") window.setStatus(row.querySelector("select"));
+                row.querySelectorAll("input, textarea, select").forEach(el => { el.disabled = true; el.style.backgroundColor = "transparent"; el.style.color = "black"; });
+                row.querySelector(".col-del").style.display = "none";
+            });
+
+            window.updateNomor();
+            if(document.getElementById("countOpen")) document.getElementById("countOpen").innerText = cOpen;
+            if(document.getElementById("countProcess")) document.getElementById("countProcess").innerText = cProcess;
+            if(document.getElementById("countClose")) document.getElementById("countClose").innerText = cClose;
+            if(document.getElementById("countTotal")) document.getElementById("countTotal").innerText = cTotal;
+        } else {
+            tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Belum ada data tersimpan.</td></tr>";
+            ["countOpen", "countProcess", "countClose", "countTotal"].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = 0; });
+        }
+    } catch (error) { tbody.innerHTML = `<tr><td colspan='13' style='color:red;'>Error Asli: <b>${error.message}</b></td></tr>`; }
+};
+
+window.save = async function() {
+    if(window.isSummaryMode) return;
+    let data = [];
+    document.querySelectorAll("#momTable tbody tr").forEach(r => {
+        let rowData = []; r.querySelectorAll("input,textarea,select,span").forEach(el => rowData.push(el.value || el.innerText || ""));
+        if (r.classList.contains("sub-row")) rowData[0] = "-";
+        if ((rowData[2] ? rowData[2].trim() : "") !== "" || (rowData[3] ? rowData[3].trim() : "") !== "") data.push(rowData);
+    });
+    if (data.length === 0) data = null;
+    try { 
+        await set(ref(db, `MOM/${window.tahun}/${window.month}/${window.week}/${window.day}`), data); 
+        if (data !== null) await set(ref(db, 'MOM_LastUpdate'), `${window.day}, ${window.month} ${window.tahun}`);
+        alert(data === null ? `Data di hari ${window.day} dikosongkan!` : `Data Berhasil disimpan!`);
+        window.loadHariIni();
+    } catch (error) { alert("Gagal menyimpan data."); }
+};
