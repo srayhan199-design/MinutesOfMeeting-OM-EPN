@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -5,7 +6,7 @@
     <title>MOM Tracking System - Global Summary & Kegiatan</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="style.css?v=10000">
+    <link rel="stylesheet" href="style.css?v=10020">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -84,13 +85,15 @@
 
         <div id="dayMenu" class="fade-in">
             <button class="weekBtn" style="background:#f8d7da; color:#721c24; border-color:#f5c6cb;" onclick="kembaliMinggu()">⬅ Kembali ke Minggu</button>
-            <h2 style="color:#2c3e50;">Pilih Hari</h2>
+            <h2 style="color:#2c3e50;">Pilihan Hari</h2>
             <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
             <button class="dayBtn" onclick="pilihHari('Senin')">Senin</button>
             <button class="dayBtn" onclick="pilihHari('Selasa')">Selasa</button>
             <button class="dayBtn" onclick="pilihHari('Rabu')">Rabu</button>
             <button class="dayBtn" onclick="pilihHari('Kamis')">Kamis</button>
             <button class="dayBtn" onclick="pilihHari('Jumat')">Jumat</button>
+            <button class="dayBtn" onclick="pilihHari('Sabtu')">Sabtu</button>
+            <button class="dayBtn" onclick="pilihHari('Minggu')">Minggu</button>
         </div>
 
         <div class="container fade-in" id="momContainer">
@@ -102,9 +105,16 @@
                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                     <div id="realtimeClock">Memuat jam...</div>
 
-                    <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <button class="add-btn" style="background:#e74c3c; margin: 0; padding: 10px 15px;" onclick="exportKePDF()">📥 Download PDF</button>
                         <button class="add-btn" style="background:#27ae60; margin: 0; padding: 10px 15px;" onclick="exportKeExcel()">📊 Download Excel</button>
+                        
+                        <select id="filterKategori" onchange="filterDataKategori()" style="padding:10px; border-radius:4px; border:1px solid #ccc; outline:none; font-weight:bold; cursor:pointer; height:38px;">
+                            <option value="Semua">Semua Kategori</option>
+                            <option value="Retensi">Retensi</option>
+                            <option value="Non Retensi">Non Retensi</option>
+                        </select>
+                        
                         <input type="text" id="searchInput" class="search-bar" onkeyup="cariData()" placeholder="🔍 Cari data...">
                     </div>
                 </div>
@@ -132,7 +142,7 @@
                             <th class="col-done">Selesai</th>
                             <th class="col-aging">Aging</th>
                             <th class="col-status">Status</th>
-                            <th class="col-remarks">Remarks</th>
+                            <th class="col-kategori">Kategori</th> <th class="col-remarks">Remarks</th>
                             <th id="colDelete">Aksi</th>
                         </tr>
                     </thead>
@@ -212,13 +222,10 @@
             }
         }
         setInterval(updateJam, 1000);
-        updateJam(); // Dijalankan langsung saat web dibuka
+        updateJam();
     </script>
 
-     <script src="app.js?v=10005"></script>
-    <script type="module" src="firebase-module.js?v=10005"></script>
-</body>
-</html>
->
+    <script src="app.js?v=10020"></script>
+    <script type="module" src="firebase-module.js?v=10020"></script>
 </body>
 </html>
