@@ -5,11 +5,12 @@ window.week = "";
 window.day = "";
 window.isSummaryMode = false;
 let currentStatusFilter = 'all'; 
+let currentKategoriFilter = 'Semua'; // TAMBAHAN FILTER KATEGORI
 
 const urutanHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-// ================= OTAK KALENDER SUPER PINTAR =================
+// ================= OTAK KALENDER =================
 window.generateCalendar = function(tahun, bulan) {
     let gBulan = urutanBulan.indexOf(bulan);
     let gTahun = parseInt(tahun);
@@ -100,7 +101,9 @@ window.resetDisplay = function() {
     document.getElementById("momContainer").style.display = "none";
     document.getElementById("statContainer").style.display = "none";
     document.getElementById("kegiatanContainer").style.display = "none";
-    document.getElementById("searchInput").value = ""; currentStatusFilter = "all";
+    document.getElementById("searchInput").value = ""; 
+    currentStatusFilter = "all"; 
+    currentKategoriFilter = "Semua"; // RESET FILTER KATEGORI
     document.getElementById("colDelete").style.display = "table-cell";
 }
 
@@ -114,6 +117,7 @@ window.home = function() {
 // ================= FILTER & SEARCH =================
 window.cariData = function() { window.applyFilters(); }
 window.filterGlobal = function(status) { currentStatusFilter = status; window.applyFilters(); }
+window.filterDataKategori = function() { currentKategoriFilter = document.getElementById("filterKategori").value; window.applyFilters(); }
 
 window.applyFilters = function() {
     let keyword = document.getElementById("searchInput").value.toLowerCase();
@@ -121,12 +125,18 @@ window.applyFilters = function() {
         let sVal = ""; let selectEl = r.querySelector(".col-status select");
         if (selectEl) sVal = selectEl.value; 
 
+        let kVal = ""; let katEl = r.querySelector(".col-kategori select");
+        if (katEl) kVal = katEl.value; 
+
         let matchStatus = (currentStatusFilter === 'all' || sVal.toLowerCase() === currentStatusFilter.toLowerCase());
+        let matchKategori = (currentKategoriFilter === 'Semua' || kVal.toLowerCase() === currentKategoriFilter.toLowerCase());
+        
         let textContent = "";
         r.querySelectorAll("input, textarea, select").forEach(el => textContent += el.value.toLowerCase() + " ");
         r.querySelectorAll("div, span").forEach(el => textContent += el.innerText.toLowerCase() + " ");
         
-        if (matchStatus && textContent.includes(keyword)) r.style.display = "table-row"; 
+        // HARUS COCOK SEMUA (STATUS, KATEGORI, DAN PENCARIAN)
+        if (matchStatus && matchKategori && textContent.includes(keyword)) r.style.display = "table-row"; 
         else r.style.display = "none"; 
     });
     window.updateNomor();
@@ -184,6 +194,14 @@ window.aging = function(el) {
 
 window.setStatus = function(s) { if(!s) return; s.parentElement.className = "col-status status-" + s.value; window.aging(s); }
 
+// ================= FUNGSI WARNA KATEGORI =================
+window.setKategori = function(k) {
+    if(!k) return;
+    if(k.value === "Retensi") k.parentElement.className = "col-kategori kat-retensi";
+    else if(k.value === "Non Retensi") k.parentElement.className = "col-kategori kat-non";
+    else k.parentElement.className = "col-kategori";
+}
+
 window.tambah = function(isSubRow = false, referenceRow = null) {
     let tbody = document.querySelector("#momTable tbody");
     let row = document.createElement("tr"); if (isSubRow) row.classList.add("sub-row");
@@ -192,6 +210,7 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
     let teksHari = window.day || ""; 
     if (tanggalAsli && !isSubRow && !window.isSummaryMode) teksHari = `${window.day}\n(${tanggalAsli})`; 
 
+    // KOLOM KATEGORI DITAMBAHKAN DI SINI
     row.innerHTML = `
         <td class="col-no"><input class="no" readonly style="background:transparent; border:none; text-align:center; font-weight:bold; font-size:16px; width:100%;"></td>
         <td class="col-hari"><textarea class="cell-hari" readonly style="background:transparent; border:none; text-align:center; width:100%; resize:none; overflow:hidden;" oninput="autoHeight(this)">${teksHari}</textarea></td>
@@ -204,6 +223,7 @@ window.tambah = function(isSubRow = false, referenceRow = null) {
         <td class="col-done"><input type="date" onchange="aging(this)"></td>
         <td class="col-aging"><span style="font-weight:bold; color:#495057;"></span></td>
         <td class="col-status"><select onchange="setStatus(this)"><option></option><option value="open">Open</option><option value="process">Process</option><option value="close">Close</option></select></td>
+        <td class="col-kategori"><select onchange="setKategori(this)"><option></option><option value="Retensi">Retensi</option><option value="Non Retensi">Non Retensi</option></select></td>
         <td class="col-remarks"><textarea oninput="autoHeight(this)"></textarea></td>
         <td class="col-del" style="white-space:nowrap;"><button onclick="hapusBaris(this)" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold; font-size:18px;">✖</button></td>
     `;
@@ -278,7 +298,7 @@ window.hitungTanggalOtomatis = function(tahun, bulan, minggu, hari) {
     return `${dd}/${mm}/${gTahun}`;
 };
 
-// ================= FITUR EXPORT ==================
+// ================= FITUR EXPORT (DENGAN KATEGORI) ==================
 window.exportKePDF = function() {
     const jspdfLib = window.jspdf; if (!jspdfLib) { alert("Library PDF gagal dimuat!"); return; }
     const { jsPDF } = jspdfLib; const doc = new jsPDF('l', 'mm', 'a4');
@@ -319,6 +339,9 @@ window.exportKeExcel = function() {
                     if(teksStatus.toLowerCase() === "open") cloneCell.style.backgroundColor = "#e74c3c"; 
                     if(teksStatus.toLowerCase() === "process") cloneCell.style.backgroundColor = "#f1c40f"; 
                     if(teksStatus.toLowerCase() === "close") cloneCell.style.backgroundColor = "#2ecc71"; 
+                    // WARNA KATEGORI EXCEL
+                    if(teksStatus.toLowerCase() === "retensi") cloneCell.style.backgroundColor = "#8e44ad"; 
+                    if(teksStatus.toLowerCase() === "non retensi") cloneCell.style.backgroundColor = "#34495e"; 
                     cloneCell.style.color = (teksStatus.toLowerCase() === "process") ? "#000" : "#fff"; 
                 } else { cloneCell.innerText = input.value; }
             } else if (oriCell.querySelector("span")) { cloneCell.innerText = oriCell.querySelector("span").innerText; }
