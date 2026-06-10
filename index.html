@@ -4,14 +4,11 @@
     <meta charset="UTF-8">
     <title>MOM Tracking System - Global Summary & Kegiatan</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <link rel="stylesheet" href="style.css?v=10020">
-
+    <link rel="stylesheet" href="style.css?v=30000">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-
 <body>
     <div id="loginScreen">
         <div class="login-box">
@@ -32,13 +29,6 @@
                 <option value="2026" selected>2026</option>
                 <option value="2027">2027</option>
                 <option value="2028">2028</option>
-                <option value="2029">2029</option>
-                <option value="2030">2030</option>
-                <option value="2031">2031</option>
-                <option value="2032">2032</option>
-                <option value="2033">2033</option>
-                <option value="2034">2034</option>
-                <option value="2035">2035</option>
             </select>
         </div>
         <button class="btn-toggle-month" onclick="toggleMonthList()"><i class="bi bi-house"></i> Pilih Bulan</button>
@@ -100,10 +90,8 @@
 
             <div class="header-controls">
                 <h2 id="judul"></h2>
-
                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                     <div id="realtimeClock">Memuat jam...</div>
-
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <button class="add-btn" style="background:#e74c3c; margin: 0; padding: 10px 15px;" onclick="exportKePDF()">📥 Download PDF</button>
                         <button class="add-btn" style="background:#27ae60; margin: 0; padding: 10px 15px;" onclick="exportKeExcel()">📊 Download Excel</button>
@@ -141,9 +129,7 @@
                             <th class="col-done">Selesai</th>
                             <th class="col-aging">Aging</th>
                             <th class="col-status">Status</th>
-                            <th class="col-kategori">Kategori</th> <th class="col-remarks">Remarks</th>
-                            <th id="colDelete">Aksi</th>
-                        </tr>
+                            <th class="col-kategori">Kategori</th> <th class="col-remarks">Remarks</th> <th id="colDelete">Aksi</th> </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
@@ -178,7 +164,6 @@
                     <button class="add-btn" style="margin:0; background:#7f8c8d;" onclick="toggleUploadForm()">Batal</button>
                 </div>
             </div>
-
             <div class="summary-stats" style="margin-top:10px; margin-bottom:20px; border-bottom:1px dashed #cbd5e1; padding-bottom:15px;" id="filterKegiatanContainer">
                 <div class="stat-box" style="background:#34495e;" onclick="fetchFoto('Semua')">Semua Foto</div>
                 <div class="stat-box" style="background:#27ae60;" onclick="fetchFoto('Lapangan')">🚜 Lapangan</div>
@@ -190,23 +175,14 @@
     </div>
 
     <div id="undoToast"></div>
-
-    <div id="lightbox" onclick="tutupLightbox()">
-        <span class="close-lightbox" onclick="tutupLightbox()">&times;</span>
-        <img id="lightboxImg">
-        <div id="lightboxCaption"></div>
-    </div>
-
+    <div id="lightbox" onclick="tutupLightbox()"><span class="close-lightbox" onclick="tutupLightbox()">&times;</span><img id="lightboxImg"><div id="lightboxCaption"></div></div>
     <div id="reminderModal" class="modal-overlay" style="display: none;">
         <div class="modal-box slide-down">
             <button class="close-modal" onclick="document.getElementById('reminderModal').style.display='none'">✖</button>
             <div class="modal-icon">🔔</div>
             <h3 style="color: #2c3e50; margin-top: 0;">PENGINGAT PENTING</h3>
             <p style="color: #555; font-size: 15px; line-height: 1.5;">Jangan lupa klik tombol <b>"Tarik Data Kemarin"</b> sebelum mulai mengisi laporan MOM hari ini ya!</p>
-            <div class="last-update-box">
-                Data terakhir diisi pada:<br>
-                <span id="lastUpdateText">Sedang mengecek...</span>
-            </div>
+            <div class="last-update-box">Data terakhir diisi pada:<br><span id="lastUpdateText">Sedang mengecek...</span></div>
             <button class="add-btn" style="background:#3498db; width:100%; margin-top:15px; padding: 10px; font-size: 15px;" onclick="document.getElementById('reminderModal').style.display='none'">Oke, Saya Mengerti</button>
         </div>
     </div>
@@ -220,11 +196,9 @@
                 clockEl.innerText = now.toLocaleTimeString('id-ID', options).replace(/\./g, ':') + " WIB";
             }
         }
-        setInterval(updateJam, 1000);
-        updateJam();
+        setInterval(updateJam, 1000); updateJam();
     </script>
-
-    <script src="app.js?v=10020"></script>
-    <script type="module" src="firebase-module.js?v=10020"></script>
+    <script src="app.js?v=30000"></script>
+    <script type="module" src="firebase-module.js?v=30000"></script>
 </body>
 </html>
