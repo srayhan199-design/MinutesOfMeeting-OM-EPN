@@ -1,3 +1,4 @@
+
 // ================= VARIABEL GLOBAL =================
 window.tahun = "2026";
 window.month = "";
@@ -5,7 +6,7 @@ window.week = "";
 window.day = "";
 window.isSummaryMode = false;
 let currentStatusFilter = 'all'; 
-let currentKategoriFilter = 'Semua'; // TAMBAHAN FILTER KATEGORI
+let currentKategoriFilter = 'Semua'; 
 
 const urutanHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 const urutanBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -102,8 +103,7 @@ window.resetDisplay = function() {
     document.getElementById("statContainer").style.display = "none";
     document.getElementById("kegiatanContainer").style.display = "none";
     document.getElementById("searchInput").value = ""; 
-    currentStatusFilter = "all"; 
-    currentKategoriFilter = "Semua"; // RESET FILTER KATEGORI
+    currentStatusFilter = "all"; currentKategoriFilter = "Semua";
     document.getElementById("colDelete").style.display = "table-cell";
 }
 
@@ -135,7 +135,6 @@ window.applyFilters = function() {
         r.querySelectorAll("input, textarea, select").forEach(el => textContent += el.value.toLowerCase() + " ");
         r.querySelectorAll("div, span").forEach(el => textContent += el.innerText.toLowerCase() + " ");
         
-        // HARUS COCOK SEMUA (STATUS, KATEGORI, DAN PENCARIAN)
         if (matchStatus && matchKategori && textContent.includes(keyword)) r.style.display = "table-row"; 
         else r.style.display = "none"; 
     });
