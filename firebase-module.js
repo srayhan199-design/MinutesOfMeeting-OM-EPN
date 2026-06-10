@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getDatabase, ref, set, get, child, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// Pastikan API Key di bawah ini sudah sesuai dengan punyamu
 const firebaseConfig = {
     apiKey: "AIzaSyABsU8Z9wzzzAPHk-5eB6HV2tcsRYGsC2w",
     authDomain: "data-minutes-of-meeting.firebaseapp.com",
@@ -92,7 +93,7 @@ window.getHariSebelumnya = function(y, m, w, d) {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FUNGSI PENGISIAN DATA PINTAR (ANTI-ILANG REMARKS LAMA)
+// PENGISIAN DATA KE TABEL (Untuk Kolom Kategori Mandiri - 14 Kolom)
 function isiDataKeBaris(row, d) {
     row.querySelector(".col-hari textarea").value = d[1] || "";
     row.querySelector(".col-matters textarea").value = d[2] || "";
@@ -108,18 +109,17 @@ function isiDataKeBaris(row, d) {
     let selKat = row.querySelector(".col-kategori select");
     let txtRemarks = row.querySelector(".col-remarks textarea");
 
-    // DETEKSI OTOMATIS: Apakah ini format lama (Remarks di d[11]) atau format baru (Kategori d[11], Remarks d[12])?
-    if (d.length === 12) { 
-        // INI DATA LAMA (Hanya sampai index 11) -> Kategori dikosongkan, index 11 masuk ke Remarks
-        if (selKat) { selKat.value = ""; if(typeof window.setKategori === "function") window.setKategori(selKat); }
-        txtRemarks.value = d[11] || "";
+    // Jika data dari cloud cuma punya 12 kolom (data lama), d[11] itu Remarks. Kategori kita kosongkan.
+    if (d.length <= 12) { 
+        if (selKat) { selKat.value = ""; if(typeof window.setKategori==="function") window.setKategori(selKat); }
+        if (txtRemarks) txtRemarks.value = d[11] || "";
     } else {
-        // INI DATA BARU (Sampai index 12) -> Index 11 untuk Kategori, Index 12 untuk Remarks
-        if (selKat) { selKat.value = d[11] || ""; if(typeof window.setKategori === "function") window.setKategori(selKat); }
-        txtRemarks.value = d[12] || ""; 
+        // Jika data baru (13 kolom/lebih), d[11] itu Kategori, d[12] itu Remarks.
+        if (selKat) { selKat.value = d[11] || ""; if(typeof window.setKategori==="function") window.setKategori(selKat); }
+        if (txtRemarks) txtRemarks.value = d[12] || ""; 
     }
     
-    if(typeof window.setStatus === "function") window.setStatus(row.querySelector("select"));
+    if(typeof window.setStatus === "function") window.setStatus(row.querySelector(".col-status select"));
     row.querySelectorAll("textarea").forEach(ta => autoHeight(ta));
 }
 // ---------------------------------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ window.loadHariIni = async function() {
         if (currentSnap.exists()) {
             currentSnap.val().forEach(d => {
                 let row = typeof window.tambah === "function" ? window.tambah(d[0] === "-") : tambah(d[0] === "-"); 
-                isiDataKeBaris(row, d); // Menggunakan fungsi pintar di atas
+                isiDataKeBaris(row, d);
             });
         } else { if(typeof window.tambah === "function") window.tambah(); else tambah(); }
         window.updateNomor();
@@ -159,7 +159,7 @@ window.tarikDataKemarin = async function() {
                         hasCarry = true;
                         g.items.forEach(d => {
                             let row = typeof window.tambah === "function" ? window.tambah(d[0] === "-") : tambah(d[0] === "-"); 
-                            isiDataKeBaris(row, d); // Menggunakan fungsi pintar di atas
+                            isiDataKeBaris(row, d);
                         });
                     }
                 }
@@ -226,7 +226,7 @@ window.loadMonthlySummary = async function(targetMonth) {
                 if (statusVal === "open") cOpen++; else if (statusVal === "process") cProcess++; else if (statusVal === "close") cClose++;
                 let row = typeof window.tambah === "function" ? window.tambah(d[0] === "-") : tambah(d[0] === "-"); 
                 
-                isiDataKeBaris(row, d); // Menggunakan fungsi pintar di atas
+                isiDataKeBaris(row, d);
                 
                 row.querySelectorAll("input, textarea, select").forEach(el => { el.disabled = true; el.style.backgroundColor = "transparent"; el.style.color = "black"; });
                 row.querySelector(".col-del").style.display = "none";
