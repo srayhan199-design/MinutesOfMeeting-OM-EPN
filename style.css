@@ -39,12 +39,12 @@ body { display: flex; background-color: #f4f6f9; }
 #homeText::after { content: ''; display: block; margin: 20px auto 0; width: 120px; height: 4px; background: #4e73df; border-radius: 2px; animation: pulseLine 1.5s infinite; }
 @keyframes pulseLine { 0%, 100% { transform: scaleX(1); opacity: 0.8; } 50% { transform: scaleX(1.5); opacity: 0.3; } }
 
-/* ================= TABLE & CONTAINER (BORDERLESS / TANPA KOTAK) ================= */
+/* ================= TABLE & CONTAINER ================= */
 .container { 
-    background: transparent; /* Hilangkan kotak putih */
-    padding: 10px 0; /* Hilangkan padding tebal */
+    background: transparent; 
+    padding: 10px 0; 
     border-radius: 0; 
-    box-shadow: none; /* Hilangkan bayangan kotak */
+    box-shadow: none; 
     border: none; 
     width: 100% !important; 
     max-width: 100% !important; 
@@ -62,17 +62,17 @@ body { display: flex; background-color: #f4f6f9; }
 /* [PERBAIKAN STICKY HEADER & TABEL MELAR] */
 .table-responsive { 
     width: 100% !important; 
-    height: calc(100vh - 250px); /* Melar bebas mengikuti layar */
+    height: calc(100vh - 250px); 
     max-height: none !important; 
     margin-bottom: 15px; 
     overflow-y: scroll !important; 
     overflow-x: auto !important; 
-    border: 1px solid #94a3b8; /* Border tipis agar tabel menyatu rapi dengan background */
+    border: 1px solid #94a3b8; 
     border-radius: 4px; 
 }
 
 /* [PERBAIKAN TABEL - FIXED LAYOUT] */
-#momTable { width: 100% !important; border-collapse: separate; border-spacing: 0; table-layout: fixed !important; min-width: 1200px; background: white; } /* Tabelnya tetap putih biar tulisan terbaca */
+#momTable { width: 100% !important; border-collapse: separate; border-spacing: 0; table-layout: fixed !important; min-width: 1450px; background: white; } /* Lebar diperbesar agar 14 kolom muat */
 th, td { border-bottom: 2px solid #94a3b8; border-right: 2px solid #94a3b8; padding: 6px; text-align: center; vertical-align: middle; white-space: nowrap; overflow-wrap: break-word; }
 th:last-child, td:last-child { border-right: none; }
 
@@ -94,13 +94,14 @@ th:last-child, td:last-child { border-right: none; }
 #momTable td.col-remarks { background-color: #eff6ff; } 
 
 /* ================= UKURAN PERSENTASE KOLOM (FLEXIBLE & LEGA) ================= */
-.col-remarks { width: 25% !important; white-space: normal; }
-.col-problem { width: 22% !important; white-space: normal; }
-.col-matters { width: 18% !important; white-space: normal; }
-.col-no { width: 4% !important; }
-.col-hari { width: 9% !important; }
-.col-tanggal, .col-pic, .col-epc, .col-due, .col-done, .col-aging, .col-status { width: 8% !important; }
-#colDelete { width: 6% !important; }
+.col-no { width: 3% !important; }
+.col-hari { width: 8% !important; }
+.col-matters { width: 14% !important; white-space: normal; } /* Disesuaikan agar muat 14 kolom */
+.col-problem { width: 14% !important; white-space: normal; } /* Disesuaikan */
+.col-tanggal, .col-pic, .col-epc, .col-due, .col-done, .col-aging, .col-status { width: 7% !important; }
+.col-kategori { width: 8% !important; } /* Lebar untuk kolom Kategori Baru */
+.col-remarks { width: 15% !important; white-space: normal; } /* Disesuaikan */
+#colDelete { width: 5% !important; min-width: 50px !important; } /* Aksi tidak akan menciut */
 
 table input, table select, table textarea { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 14px !important; font-weight: bold !important; background: #fdfdfd; transition: border 0.3s; }
 table input:focus, table select:focus, table textarea:focus { border-color: #4e73df; outline: none; background: white; }
@@ -124,6 +125,16 @@ table textarea { resize: none; overflow: hidden; min-height: 45px; display: bloc
 .status-close { background: #2ecc71 !important; }
 .status-close select { background: transparent !important; color: white !important; font-weight: bold; border: none !important; }
 .status-close select option { color: black; background: white; }
+
+/* WARNA KATEGORI */
+.kat-retensi { background-color: #8e44ad !important; }
+.kat-retensi select { background: transparent !important; color: white !important; border: none !important; }
+.kat-retensi select option { color: black; background: white; }
+
+.kat-nonretensi { background-color: #34495e !important; }
+.kat-nonretensi select { background: transparent !important; color: white !important; border: none !important; }
+.kat-nonretensi select option { color: black; background: white; }
+
 
 .add-btn { background: #4e73df; color: white; padding: 10px 20px; margin-top: 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 .add-btn:hover { filter: brightness(0.9); }
