@@ -34,7 +34,7 @@ onAuthStateChanged(auth, (user) => {
             let txt = document.getElementById("lastUpdateText");
             if (modal && txt) { txt.innerText = lastDate; modal.style.display = "flex"; }
         }).catch(err => console.error(err));
-        
+
         if(typeof window.loadHariIni === "function") window.loadHariIni();
     } else {
         if(loginScreen) loginScreen.style.display = "flex";
@@ -85,12 +85,35 @@ const urutanBulanLokal = ["Januari", "Februari", "Maret", "April", "Mei", "Juni"
 const urutanMingguLokal = ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4", "Minggu 5"]; 
 const urutanHariLokal = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 
+// ---------------------------------------------------------------------------------------------------------
+// PERBAIKAN BUG KALENDER: Nyebrang Bulan / Tahun dengan Akurat
 window.getHariSebelumnya = function(y, m, w, d) {
-    let yIdx = parseInt(y); let mIdx = urutanBulanLokal.indexOf(m); let wIdx = urutanMingguLokal.indexOf(w); let dIdx = urutanHariLokal.indexOf(d);
-    dIdx--; 
-    if (dIdx < 0) { dIdx = 6; wIdx--; if (wIdx < 0) { wIdx = 4; mIdx--; if (mIdx < 0) { mIdx = 11; yIdx--; } } }
-    return { y: yIdx.toString(), m: urutanBulanLokal[mIdx], w: urutanMingguLokal[wIdx], d: urutanHariLokal[dIdx] };
+    let tglSekarangStr = window.hitungTanggalOtomatis(y, m, w, d);
+    if (!tglSekarangStr) return null; // Pengaman jika tanggal kosong
+
+    let parts = tglSekarangStr.split('/');
+    let tglObj = new Date(parts[2], parseInt(parts[1]) - 1, parts[0]);
+    tglObj.setDate(tglObj.getDate() - 1); // Mundur 1 hari di kalender
+
+    let yBaru = tglObj.getFullYear().toString();
+    let mBaru = urutanBulanLokal[tglObj.getMonth()];
+    let arrayNamaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    let dBaru = arrayNamaHari[tglObj.getDay()];
+    let tanggalAngkaBaru = tglObj.getDate();
+
+    let kalenderBaru = window.generateCalendar(yBaru, mBaru);
+    let wBaru = "Minggu 1"; 
+    if (kalenderBaru) {
+        for (let mg in kalenderBaru) {
+            if (kalenderBaru[mg][dBaru] === tanggalAngkaBaru) {
+                wBaru = "Minggu " + mg;
+                break;
+            }
+        }
+    }
+    return { y: yBaru, m: mBaru, w: wBaru, d: dBaru };
 }
+// ---------------------------------------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------------------------------------
 // PENGISIAN DATA KE TABEL (Untuk Kolom Kategori Mandiri - 14 Kolom)
@@ -105,7 +128,7 @@ function isiDataKeBaris(row, d) {
     row.querySelector(".col-done input").value = d[8] || "";
     row.querySelector(".col-aging span").innerText = d[9] || "";
     row.querySelector(".col-status select").value = d[10] || "open";
-    
+
     let selKat = row.querySelector(".col-kategori select");
     let txtRemarks = row.querySelector(".col-remarks textarea");
 
@@ -118,7 +141,7 @@ function isiDataKeBaris(row, d) {
         if (selKat) { selKat.value = d[11] || ""; if(typeof window.setKategori==="function") window.setKategori(selKat); }
         if (txtRemarks) txtRemarks.value = d[12] || ""; 
     }
-    
+
     if(typeof window.setStatus === "function") window.setStatus(row.querySelector(".col-status select"));
     row.querySelectorAll("textarea").forEach(ta => autoHeight(ta));
 }
@@ -142,6 +165,7 @@ window.loadHariIni = async function() {
 
 window.tarikDataKemarin = async function() {
     let prev = window.getHariSebelumnya(window.tahun, window.month, window.week, window.day);
+    if (!prev) { alert("Sistem kalender gagal memuat hari kemarin. Pastikan Anda sudah memilih hari dengan benar."); return; } // Pengaman tambahan
     if (parseInt(prev.y) < 2025) { alert("Tidak ada data sebelum tahun 2025."); return; }
     try {
         const snap = await get(child(ref(db), `MOM/${prev.y}/${prev.m}/${prev.w}/${prev.d}`));
@@ -164,8 +188,8 @@ window.tarikDataKemarin = async function() {
                     }
                 }
             });
-            if (hasCarry) { alert(`Tugas ditarik dari hari ${prev.d}!`); window.updateNomor(); } else { alert(`Sudah ditarik semua.`); }
-        } else { alert(`Tidak ada rekaman di hari ${prev.d}.`); }
+            if (hasCarry) { alert(`Tugas ditarik dari tanggal ${prev.d}, ${prev.w} ${prev.m} ${prev.y}!`); window.updateNomor(); } else { alert(`Sudah ditarik semua.`); }
+        } else { alert(`Tidak ada rekaman di hari ${prev.d}, ${prev.m}.`); }
     } catch (err) { alert("Gagal terhubung ke Cloud."); }
 };
 
